@@ -6,6 +6,7 @@ from FeatureEngineering import encoding
 from chat import ChatPredicta
 from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
+from FeatureSelection import featureimportance
 import theme
 import os
 
@@ -63,7 +64,8 @@ class PredictaApp:
                 "Data Explore",
                 "Impute Missing Values",
                 "Detect Outlier",
-                "Encoder", 
+                "Encoder",
+                "Feature Importance Analyzer",
                 "Chat With Predicta",
                 "PredictaCodeEditor",
                 "Select ML Models",
@@ -86,6 +88,8 @@ class PredictaApp:
             self.handle_select_ml_models()
         elif selected_option == "Clear Modified DataFrame":
             self.clear_modified_df()
+        elif selected_option == "Feature Importance Analyzer":
+            self.feature_importance()
             
         st.sidebar.markdown("---")
         self.handle_about()
@@ -146,6 +150,19 @@ class PredictaApp:
         else:
             st.markdown(
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to detect outlier.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("uploadfile.png", use_column_width=True)
+        self.show_footer()
+    
+    def feature_importance(self):
+        if self.df is not None:
+            out = featureimportance.FeatureImportanceAnalyzer(self.df)
+            self.df = out.analyze_features()
+            self.save_modified_df()
+        else:
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to find feature importance.</div>",
                 unsafe_allow_html=True,
             )
             st.image("uploadfile.png", use_column_width=True)

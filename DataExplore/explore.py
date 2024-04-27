@@ -28,7 +28,7 @@ class DataAnalyzer:
 
             # Drop the specified columns
             self.data = self.data.drop(columns_to_drop, axis=1)
-            st.error("Dropped the following columns: %s" % ", ".join(columns_to_drop))
+            st.info("Dropped the following columns: %s" % ", ".join(columns_to_drop))
             return self.data
 
         except Exception as e:
@@ -52,7 +52,7 @@ class DataAnalyzer:
             try:
                 data[col] = pd.to_numeric(data[col], errors='coerce')
             except ValueError as e:
-                print(f"Error converting column '{col}': {e}")
+                st.error(f"Error converting column '{col}': {e}")
         
         return data
     
