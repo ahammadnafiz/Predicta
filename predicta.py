@@ -1,30 +1,35 @@
-import streamlit as st
+import os
 import pandas as pd
-from DataExplore import explore
+import streamlit as st
+
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
-from chat import ChatPredicta
 from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
+from DataExplore import explore
 from FeatureSelection import featureimportance
+from chat import ChatPredicta
 import theme
-import os
+
 
 
 class PredictaApp:
+    """Main class for the Predicta application."""
+
     def __init__(self):
         self.df = None
         self.anthropi_api_key = None
         self.modified_df_path = "modified_data.csv"
-        self.load_modified_df() 
+        self.load_modified_df()
 
     def show_hero_image(self):
+        """Display the hero image."""
         st.image("Hero.png")
 
     def show_footer(self):
+        """Display the footer."""
         st.markdown("---")
-        footer = "*copyright@infinitequants*"
-        st.markdown(footer)
+        st.markdown("*copyright@infinitequants*")
 
         footer_content = """
         <div class="footer">
@@ -34,8 +39,9 @@ class PredictaApp:
         </div>
         """
         st.markdown(footer_content, unsafe_allow_html=True)
-    
+
     def file_upload(self):
+        """Handle file upload."""
         if not os.path.exists(self.modified_df_path):
             uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
             if uploaded_file is not None:
@@ -44,8 +50,9 @@ class PredictaApp:
                 self.save_modified_df()
         else:
             st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
-            
+
     def handle_sidebar(self):
+        """Handle the sidebar options."""
         st.sidebar.title("Predicta")
         st.sidebar.markdown("---")
 
@@ -96,14 +103,17 @@ class PredictaApp:
         self.handle_help()
 
     def handle_about(self):
+        """Display information about the application."""
         st.sidebar.markdown("#### About")
         st.sidebar.info("Predicta is a powerful data analysis and machine learning tool designed to streamline your workflow and provide accurate predictions.")
 
     def handle_help(self):
+        """Display help information."""
         st.sidebar.markdown("#### Help")
         st.sidebar.info("For any assistance or inquiries, please contact us at support@predicta.com.")
 
     def handle_data_explore(self):
+        """Handle data exploration."""
         if self.df is not None:
             analysis = explore.DataAnalyzer(self.df)
             self.df = analysis.analyzer()
@@ -117,6 +127,7 @@ class PredictaApp:
         self.show_footer()
         
     def handle_impute_missing_values(self):
+        """Handle missing data imputation."""
         if self.df is not None:
             impute = missing_data.DataImputer(self.df)
             self.df = impute.imputer()
@@ -130,6 +141,7 @@ class PredictaApp:
         self.show_footer()
 
     def handle_detect_outlier(self):
+        """Handle outlier detection."""
         if self.df is not None:
             out = outlier.OutlierDetector(self.df)
             self.df = out.outlier_detect()
@@ -143,19 +155,21 @@ class PredictaApp:
         self.show_footer()
     
     def encode_data(self):
+        """Handle data encoding."""
         if self.df is not None:
             out = encoding.DataEncoder(self.df)
             self.df = out.encoder()
             self.save_modified_df()
         else:
             st.markdown(
-                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to detect outlier.</div>",
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to encode data.</div>",
                 unsafe_allow_html=True,
             )
             st.image("uploadfile.png", use_column_width=True)
         self.show_footer()
     
     def feature_importance(self):
+        """Handle feature importance analysis."""
         if self.df is not None:
             out = featureimportance.FeatureImportanceAnalyzer(self.df)
             self.df = out.analyze_features()
@@ -169,6 +183,7 @@ class PredictaApp:
         self.show_footer()
 
     def handle_chat_with_predicta(self):
+        """Handle chat interaction with Predicta."""
         if self.df is not None:
             chat_page = ChatPredicta(self.df, self.anthropi_api_key)
             chat_page.chat_with_predicta()
@@ -181,12 +196,14 @@ class PredictaApp:
             self.show_footer()
 
     def code_editor(self):
+        """Launch the code editor."""
         editor = PredictaCodeEditor()
         editor.run_code_editor(self.df)
         self.save_modified_df()
         self.show_footer()
 
     def handle_select_ml_models(self):
+        """Handle selection of machine learning models."""
         if self.df is not None:
             model = predictmlalgo.PredictAlgo(self.df)
             model.algo()
@@ -200,14 +217,17 @@ class PredictaApp:
         self.show_footer()
 
     def save_modified_df(self):
+        """Save the modified DataFrame to a CSV file."""
         if self.df is not None:
             self.df.to_csv(self.modified_df_path, index=False)
 
     def load_modified_df(self):
+        """Load the modified DataFrame from a CSV file."""
         if os.path.exists(self.modified_df_path):
             self.df = pd.read_csv(self.modified_df_path)
 
     def clear_modified_df(self):
+        """Clear the modified DataFrame."""
         if os.path.exists(self.modified_df_path):
             os.remove(self.modified_df_path)
             st.success("Modified DataFrame cleared successfully.")
@@ -221,6 +241,7 @@ class PredictaApp:
         self.show_footer()
     
     def run(self):
+        """Run the Predicta application."""
         self.load_modified_df()  
         self.show_hero_image()
         self.handle_sidebar()

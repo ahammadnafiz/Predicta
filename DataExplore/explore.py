@@ -292,7 +292,6 @@ class DataAnalyzer:
                 self._correlation_plot(output_path=None)
 
         
-
     def _time_series_plot(self, time_column, value_column, aggregation_function='mean', time_interval='D', smoothing_technique=None, output_path=None):
         """
         Creates a time series plot based on the specified time and value columns.
@@ -332,6 +331,7 @@ class DataAnalyzer:
             time_series_fig.write_html(ts_plot_path)
             st.write('Time series plot saved at:', ts_plot_path)
 
+
     def _distribution_comparison_plot(self, columns, output_path=None):
         """
         Creates a plot to compare the distributions of multiple columns.
@@ -352,6 +352,7 @@ class DataAnalyzer:
             dist_comp_plot_path = os.path.join(output_path, 'distribution_comparison_plot.html')
             fig.write_html(dist_comp_plot_path)
             st.write('Distribution comparison plot saved at:', dist_comp_plot_path)
+
 
     def analyzer(self):
         """
