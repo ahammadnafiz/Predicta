@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
+from dateutil import parser
 import os
 
 
@@ -143,25 +144,40 @@ class DataAnalyzer:
         
         st.plotly_chart(fig)
 
+
     def _continuous_var_distplot(self, x, output_path=None, bins=None):
         """
         Creates a distribution plot for a continuous variable.
         """
-        fig = px.histogram(self.data, x=x, nbins=bins, title=f'Distribution Plot: {x}', histnorm='probability density', marginal='box')
+        try:
+            fig = px.histogram(self.data, x=x, nbins=bins, title=f'Distribution Plot: {x}', histnorm='probability density', marginal='box')
 
-        x_data = self.data[x].values
-        kde_fig = ff.create_distplot([x_data], ['KDE'], curve_type='kde')
+            x_data = self.data[x].values
 
-        # Add KDE traces to the histogram
-        for trace in kde_fig['data']:
-            fig.add_trace(trace)
+            # Convert x_data to numeric type if needed (e.g., from string)
+            try:
+                x_data = pd.to_numeric(x_data)
+            except ValueError:
+                # Handle non-convertible values or NaNs if necessary
+                st.warning(f"Failed to convert '{x}' column to numeric type. Plotting distribution without KDE.")
+            
+            kde_fig = ff.create_distplot([x_data], ['KDE'], curve_type='kde')
 
-        if output_path:
-            output = os.path.join(output_path, f'Distplot_{x}.html')
-            fig.write_html(output)
-            st.write('Figure saved at:', output)
-        
-        st.plotly_chart(fig)
+            # Add KDE traces to the histogram
+            for trace in kde_fig['data']:
+                fig.add_trace(trace)
+
+            if output_path:
+                output = os.path.join(output_path, f'Distplot_{x}.html')
+                fig.write_html(output)
+                st.write('Figure saved at:', output)
+            
+            # Show the Plotly figure using Streamlit
+            st.plotly_chart(fig)
+
+        except Exception as e:
+            st.error(f"An error occurred while generating the distribution plot: {e}")
+
 
     def _scatter_plot(self, x, y, output_path=None):
         """
@@ -298,7 +314,7 @@ class DataAnalyzer:
         """
         try:
             # Ensure time column is datetime type
-            self.data[time_column] = pd.to_datetime(self.data[time_column])
+            self.data[time_column] = self.data[time_column].apply(lambda x: parser.parse(str(x)))
         
         except Exception as e:
             st.warning(f"An error occurred: {e}")
@@ -363,10 +379,18 @@ class DataAnalyzer:
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
         st.dataframe(self.data, width=800)
         
-        analysis_option = st.sidebar.selectbox("Select Exploration Option", ["Dataset Information", "Describe", "Drop Columns", "Discrete Variable Barplot", "Discrete Variable Countplot",
-                                                            "Discrete Variable Boxplot", "Continuous Variable Distplot", 
-                                                            "Scatter Plot", "Correlation Plot", "Time Series Plot",
-                                                            "Distribution Comparison Plot", "Interactive Data Table"])
+        analysis_option = st.sidebar.selectbox("Select Exploration Option", ["Dataset Information", 
+                                                                             "Describe", 
+                                                                             "Drop Columns", 
+                                                                             "Discrete Variable Barplot", 
+                                                                             "Discrete Variable Countplot",
+                                                                             "Discrete Variable Boxplot", 
+                                                                             "Continuous Variable Distplot", 
+                                                                             "Scatter Plot", 
+                                                                             "Correlation Plot", 
+                                                                             "Time Series Plot",
+                                                                             "Distribution Comparison Plot", 
+                                                                             "Interactive Data Table"])
         
         if analysis_option == "Dataset Information":
             self._display_info()

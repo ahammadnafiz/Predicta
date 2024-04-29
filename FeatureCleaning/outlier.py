@@ -48,8 +48,10 @@ class OutlierDetector:
 
             return outlier_index, para
         except Exception as e:
+            st.info("An error occurred while processing your request. Please check your input data and try again.")
+            # Log the error for debugging purposes
             self.logger.error("An error occurred while detecting outliers: %s", str(e))
-            raise
+            return [], ()
 
     def outlier_detect_mean_std(self, data, col, threshold=3):
         try:
@@ -79,8 +81,10 @@ class OutlierDetector:
             
             return outlier_index, para
         except Exception as e:
+            st.write("An error occurred while processing your request. Please check your input data and try again.")
+            # Log the error for debugging purposes
             self.logger.error("An error occurred while detecting outliers: %s", str(e))
-            raise
+            return [], ()
 
     def outlier_detect_MAD(self, data, col, threshold=3.5):
         try:
@@ -109,8 +113,10 @@ class OutlierDetector:
 
             return outlier_index
         except Exception as e:
+            st.write("An error occurred while processing your request. Please check your input data and try again.")
+            # Log the error for debugging purposes
             self.logger.error("An error occurred while detecting outliers: %s", str(e))
-            raise
+            return [], ()
 
     def impute_outlier_with_arbitrary(self, data, outlier_index, value, col):
         try:

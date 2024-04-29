@@ -12,7 +12,6 @@ from chat import ChatPredicta
 import theme
 
 
-
 class PredictaApp:
     """Main class for the Predicta application."""
 
@@ -40,16 +39,34 @@ class PredictaApp:
         """
         st.markdown(footer_content, unsafe_allow_html=True)
 
+    def read_csv_with_encoding(self, uploaded_file, encodings=['latin-1']):
+        """
+        Try reading a CSV file with multiple encodings until successful.
+        """
+
+        for encoding in encodings:
+            try:
+                df = pd.read_csv(uploaded_file, encoding=encoding)
+                return df
+            except UnicodeDecodeError:
+                continue
+            except Exception as e:
+                print(f"Error occurred while reading with encoding {encoding}: {e}")
+                return None
+        
+        print(f"Failed to read CSV file with the specified encodings.")
+        return None
+
     def file_upload(self):
         """Handle file upload."""
         if not os.path.exists(self.modified_df_path):
             uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
             if uploaded_file is not None:
-                self.data = pd.read_csv(uploaded_file)
-                self.df = self.data.copy(deep=True)
+                self.df = self.read_csv_with_encoding(uploaded_file)
                 self.save_modified_df()
         else:
             st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
+
 
     def handle_sidebar(self):
         """Handle the sidebar options."""
