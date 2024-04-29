@@ -67,7 +67,6 @@ class PredictaApp:
         else:
             st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
 
-
     def handle_sidebar(self):
         """Handle the sidebar options."""
         st.sidebar.title("Predicta")
