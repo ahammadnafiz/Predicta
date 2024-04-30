@@ -51,10 +51,10 @@ class PredictaApp:
             except UnicodeDecodeError:
                 continue
             except Exception as e:
-                print(f"Error occurred while reading with encoding {encoding}: {e}")
+                st.info(f"Error occurred while reading with encoding {encoding}: {e}")
                 return None
         
-        print(f"Failed to read CSV file with the specified encodings.")
+        st.info(f"Failed to read CSV file with the specified encodings.")
         return None
 
     def file_upload(self):
