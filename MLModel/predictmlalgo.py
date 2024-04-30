@@ -275,7 +275,7 @@ class PredictAlgo:
         st.write('Weights:', coef)
         st.write('Bias:', intercept)
     
-    def KNN_Regression(self):
+    def knn_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -308,7 +308,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def Decision_Tree_Regression(self):
+    def decision_tree_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -346,7 +346,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def SVR_Regression(self):
+    def svr_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -381,7 +381,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def RandomForest_Regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=0.5):
+    def randomforest_regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=0.5):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -416,7 +416,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def ExtraTrees_Regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=None):
+    def extratrees_regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=None):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -452,7 +452,7 @@ class PredictAlgo:
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
 
     
-    def AdaBoost_Regression(self, n_estimators, learning_rate):
+    def adaboost_regression(self, n_estimators, learning_rate):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -483,7 +483,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def GradientBoosting_Regression(self, n_estimators, max_features):
+    def gradientboosting_regression(self, n_estimators, max_features):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -515,7 +515,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def XGBRegressor_Regression(self, n_estimators, max_depth, learning_rate):
+    def xgbregressor_regression(self, n_estimators, max_depth, learning_rate):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -546,7 +546,7 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
     
-    def StackingRegressor_Regression(self):
+    def stackingregressor_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
         target = st.selectbox("Select Target Variable", self.df.columns)
 
@@ -618,35 +618,35 @@ class PredictAlgo:
             alpha = st.number_input("Enter alpha value", min_value=0.001, max_value=1000.0, value=0.001)
             self.lesso_regression(alpha=alpha)  
         elif algorithm_option == "KNN Regression":
-            self.KNN_Regression()
+            self.knn_regression()
         elif algorithm_option == "Decision Tree Regression":
-            self.Decision_Tree_Regression()
+            self.decision_tree_regression()
         elif algorithm_option == "SVR Regression":
-            self.SVR_Regression()
+            self.svr_regression()
         elif algorithm_option == "Random Forest Regression":
             n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
             max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
             max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
             max_samples = st.number_input("Enter max samples", min_value=0.1, max_value=1.0, value=0.5)
-            self.RandomForest_Regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features, max_samples=max_samples)
+            self.randomforest_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features, max_samples=max_samples)
         elif algorithm_option == "Extra Trees Regression":
             n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
             max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
             max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
-            self.ExtraTrees_Regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features)
+            self.extratrees_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features)
         elif algorithm_option == "AdaBoost Regression":
             n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
             learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=1.0)
-            self.AdaBoost_Regression(n_estimators=n_estimators, learning_rate=learning_rate)
+            self.adaboost_regression(n_estimators=n_estimators, learning_rate=learning_rate)
         elif algorithm_option == "Gradient Boosting Regression":
             n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
             max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
-            self.GradientBoosting_Regression(n_estimators=n_estimators, max_features=max_features)
+            self.gradientboosting_regression(n_estimators=n_estimators, max_features=max_features)
         elif algorithm_option == "XGBRegressor Regression":
             n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
             max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=3)
             learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=0.1)
-            self.XGBRegressor_Regression(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
+            self.xgbregressor_regression(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
         elif algorithm_option == "Stacking Regressor":
-            self.StackingRegressor_Regression()
+            self.stackingregressor_regression()
 
