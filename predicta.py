@@ -188,7 +188,7 @@ class PredictaApp:
         """Handle feature importance analysis."""
         if self.df is not None:
             out = featureimportance.FeatureImportanceAnalyzer(self.df)
-            self.df = out.analyze_features()
+            out.analyze_features()
             self.save_modified_df()
         else:
             st.markdown(

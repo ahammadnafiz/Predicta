@@ -1,11 +1,11 @@
-import streamlit as st
+import os
+from dateutil import parser
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
-from dateutil import parser
-import os
+import streamlit as st
 
 
 class DataAnalyzer:
@@ -16,7 +16,7 @@ class DataAnalyzer:
         self.numeric_data = self.data.select_dtypes(include='number')
 
     
-    def drop_columns(self, columns_to_drop):
+    def _drop_columns(self, columns_to_drop):
         """
         Drops the specified columns from the DataFrame.
         """
@@ -83,6 +83,78 @@ class DataAnalyzer:
         profile = self.data.describe(include='all')
         return profile
 
+    def _line_plot(self, x, y, output_path=None):
+        """
+        Creates a line plot for two continuous variables.
+        """
+        # Create line trace
+        line_trace = go.Scatter(x=self.data[x], y=self.data[y], mode='lines', marker_color="#f95738")
+        
+        # Create layout
+        layout = go.Layout(title=f'Line Plot: {y} vs {x}')
+        
+        # Create figure
+        fig = go.Figure(data=[line_trace], layout=layout)
+        
+        if output_path:
+            output = os.path.join(output_path, f'Line_plot_{x}_{y}.html')
+            fig.write_html(output)
+            st.write('Figure saved at:', output)
+        
+        st.plotly_chart(fig)
+    
+    def _boxplot_with_outliers(self, x, y, output_path=None):
+        """
+        Creates a box plot with optional outlier analysis.
+        """
+        fig = go.Figure()
+        fig.add_trace(go.Box(x=self.data[x], y=self.data[y], name=y, boxpoints='outliers'))
+        
+        fig.update_layout(title=f'Box Plot: {y} vs {x}')
+        
+        if output_path:
+            output = os.path.join(output_path, f'Boxplot_with_outliers_{x}_{y}.html')
+            fig.write_html(output)
+            st.write('Figure saved at:', output)
+        
+        st.plotly_chart(fig)
+    
+    def _pairwise_scatter_matrix(self, variables, output_path=None):
+        """
+        Creates a pairwise scatter plot matrix for multiple variables.
+        """
+        scatter_matrix_fig = px.scatter_matrix(self.data[variables], title='Pairwise Scatter Plot Matrix')
+        
+        if output_path:
+            output = os.path.join(output_path, 'pairwise_scatter_matrix.html')
+            scatter_matrix_fig.write_html(output)
+            st.write('Pairwise scatter plot matrix saved at:', output)
+        
+        st.plotly_chart(scatter_matrix_fig)
+    
+    def _categorical_heatmap(self, x, y, output_path=None):
+        """
+        Creates a heatmap for visualizing relationships between two categorical variables.
+        """
+        pivot_table = self.data.pivot_table(index=x, columns=y, aggfunc='size', fill_value=0)
+        
+        heatmap_fig = go.Figure(data=go.Heatmap(
+            z=pivot_table.values,
+            x=pivot_table.columns.tolist(),
+            y=pivot_table.index.tolist(),
+            colorscale='Viridis'
+        ))
+        
+        heatmap_fig.update_layout(title=f'Heatmap: {x} vs {y}')
+        
+        if output_path:
+            output = os.path.join(output_path, f'heatmap_{x}_vs_{y}.html')
+            heatmap_fig.write_html(output)
+            st.write('Heatmap saved at:', output)
+        
+        st.plotly_chart(heatmap_fig)
+
+    
     def _discrete_var_barplot(self, x, y, output_path=None):
         """
         Creates a bar plot for discrete variables.
@@ -381,12 +453,16 @@ class DataAnalyzer:
         
         analysis_option = st.sidebar.selectbox("Select Exploration Option", ["Dataset Information", 
                                                                              "Describe", 
-                                                                             "Drop Columns", 
+                                                                             "Drop Columns",
+                                                                             "Line Plot",
                                                                              "Discrete Variable Barplot", 
                                                                              "Discrete Variable Countplot",
                                                                              "Discrete Variable Boxplot", 
-                                                                             "Continuous Variable Distplot", 
+                                                                             "Continuous Variable Distplot",
+                                                                             "Box Plot with Outliers",
+                                                                             "Pairwise Scatter Plot Matrix",
                                                                              "Scatter Plot", 
+                                                                             "Categorical Heatmap",
                                                                              "Correlation Plot", 
                                                                              "Time Series Plot",
                                                                              "Distribution Comparison Plot", 
@@ -402,10 +478,15 @@ class DataAnalyzer:
             columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
             if st.button("Drop Columns"):
                 try:
-                    self.data = self.drop_columns(columns_to_drop)
+                    self.data = self._drop_columns(columns_to_drop)
                     st.dataframe(self.data)
                 except Exception as e:
                     st.error(f"An error occurred while dropping columns: {str(e)}")
+        elif analysis_option == "Line Plot":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Line Plot</h1>", unsafe_allow_html=True)
+            x = st.selectbox("Select X axis", self.data.columns)
+            y = st.selectbox("Select Y axis", self.data.columns)
+            self._line_plot(x, y)
         elif analysis_option == "Discrete Variable Barplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
@@ -430,6 +511,20 @@ class DataAnalyzer:
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._scatter_plot(x, y)
+        elif analysis_option == "Box Plot with Outliers":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Box Plot with Outliers</h1>", unsafe_allow_html=True)
+            x = st.selectbox("Select X axis", self.data.columns)
+            y = st.selectbox("Select Y axis", self.data.columns)
+            self._boxplot_with_outliers(x, y)
+        elif analysis_option == "Pairwise Scatter Plot Matrix":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Pairwise Scatter Plot Matrix</h1>", unsafe_allow_html=True)
+            variables = st.multiselect("Select Variables", self.data.columns)
+            self._pairwise_scatter_matrix(variables)
+        elif analysis_option == "Categorical Heatmap":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Categorical Heatmap</h1>", unsafe_allow_html=True)
+            x = st.selectbox("Select X axis", self.data.columns)
+            y = st.selectbox("Select Y axis", self.data.columns)
+            self._categorical_heatmap(x, y)
         elif analysis_option == "Correlation Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Correlation Plot</h1>", unsafe_allow_html=True)
             self._correlation_plot()
