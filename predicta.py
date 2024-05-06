@@ -23,7 +23,7 @@ class PredictaApp:
 
     def show_hero_image(self):
         """Display the hero image."""
-        st.image("Hero.png")
+        st.image("assets/Hero.png")
 
     def show_footer(self):
         """Display the footer."""
@@ -139,7 +139,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Explore.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
         
     def handle_impute_missing_values(self):
@@ -153,7 +153,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to perform feature cleaning.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
 
     def handle_detect_outlier(self):
@@ -167,7 +167,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to detect outlier.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
     
     def encode_data(self):
@@ -181,7 +181,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to encode data.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
     
     def feature_importance(self):
@@ -195,7 +195,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to find feature importance.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
 
     def handle_chat_with_predicta(self):
@@ -208,7 +208,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Chat.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
             self.show_footer()
 
     def code_editor(self):
@@ -229,7 +229,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Perform Prediction.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
 
     def save_modified_df(self):
@@ -253,7 +253,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Perform Prediction.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
     
     def run(self):

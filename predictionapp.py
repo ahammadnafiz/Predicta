@@ -1,62 +1,118 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import theme
 
-# Function to load trained model
+# Define the PredictionApp class
+class PredictionApp:
+    def __init__(self):
+        self.model = None
+        self.preprocessed_data = None
+        self.target_column = None
 
-def load_model(model_file):
-    model = joblib.load(model_file)
-    return model
+    def show_hero_image(self):
+        """Display the hero image."""
+        st.image("assets/Prediction app.png")
+    
+    def show_footer(self):
+        """Display the footer."""
+        st.markdown("---")
+        st.markdown("*copyright@infinitequants*")
 
-# Function to make predictions
-def make_prediction(model, input_data):
-    prediction = model.predict(input_data)
-    return prediction
+        footer_content = """
+        <div class="footer">
+            Follow us: &nbsp;&nbsp;&nbsp;
+            <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
+            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦
+        </div>
+        """
+        st.markdown(footer_content, unsafe_allow_html=True)
+    
+    def load_model(self, model_file):
+        self.model = joblib.load(model_file)
 
-def main():
-    st.title("Model Prediction App")
+    def load_preprocessed_data(self, dataset_file):
+        self.preprocessed_data = pd.read_csv(dataset_file)
 
-    # Upload model file
-    st.sidebar.subheader("Upload Model")
-    model_file = st.sidebar.file_uploader("Upload Trained Model", type=["pkl"])
+    def show_uploaded_data(self):
+        st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 30px;'>Dataset</div>",
+                unsafe_allow_html=True,
+            )
+        st.write(self.preprocessed_data)
 
-    # Upload preprocessed dataset
-    st.sidebar.subheader("Upload Preprocessed Dataset")
-    dataset_file = st.sidebar.file_uploader("Upload Preprocessed Dataset (CSV)", type=["csv"])
+    def select_features(self):
+        st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 20px;'>Select Columns</div>",
+                unsafe_allow_html=True,
+            )
+        feature_columns = st.multiselect("Select Feature Columns", self.preprocessed_data.columns)
+        self.target_column = st.selectbox("Select Target Column", self.preprocessed_data.columns)
+        return feature_columns
 
-    if model_file and dataset_file:
-        # Load model
-        model = load_model(model_file)
+    def input_feature_values(self, feature_columns):
+        st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 20px;'>Input Values for Selected Features</div>",
+                unsafe_allow_html=True,
+            )
+        input_values = {}
+        for feature in feature_columns:
+            input_values[feature] = st.number_input(f"Enter value for {feature}", min_value=0.0, step=0.01)
+        return input_values
 
-        # Load preprocessed dataset
-        preprocessed_data = pd.read_csv(dataset_file)
+    def make_prediction(self, input_data):
+        prediction = self.model.predict(input_data)
+        return prediction
 
-        # Show uploaded data
-        st.subheader("Uploaded Preprocessed Dataset")
-        st.write(preprocessed_data)
+    def display_prediction_result(self, prediction):
+        st.subheader("Prediction Result")
+        st.write(prediction)
 
-        # Select feature columns
-        st.subheader("Select Features for Prediction")
-        feature_columns = st.multiselect("Select Feature Columns", preprocessed_data.columns)
+    def run(self):
+        self.show_hero_image()
+    
+        # Sidebar for uploading files
+        st.sidebar.subheader("Upload Model")
+        model_file = st.sidebar.file_uploader("Upload Trained Model", type=["pkl"])
 
-        if feature_columns:
-            # Input values for selected features
-            st.subheader("Input Values for Selected Features")
-            input_values = {}
-            for feature in feature_columns:
-                input_values[feature] = st.number_input(f"Enter value for {feature}", min_value=0.0, step=0.01)
+        dataset_file = st.file_uploader("Upload Preprocessed Dataset (CSV)", type=["csv"])
 
-            if st.button("Make Prediction"):
-                # Create DataFrame from input values
-                input_data = pd.DataFrame([input_values])
+        if model_file and dataset_file:
+            self.load_model(model_file)
+            self.load_preprocessed_data(dataset_file)
+            self.show_uploaded_data()
 
-                # Make prediction
-                prediction = make_prediction(model, input_data)
-                st.subheader("Prediction Result")
-                st.write(prediction)
+            feature_columns = self.select_features()
+
+            if feature_columns and self.target_column:
+                input_values = self.input_feature_values(feature_columns)
+
+                if st.button("Make Prediction"):
+                    input_data = pd.DataFrame([input_values])
+                    prediction = self.make_prediction(input_data)
+                    self.display_prediction_result(prediction)
+            else:
+                st.warning("Please select at least one feature column and a target column.")
         else:
-            st.warning("Please select at least one feature column.")
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Explore.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("assets/uploadfile.png", use_column_width=True)
+        self.show_footer()
 
 if __name__ == "__main__":
-    main()
+    st.set_page_config(
+        page_title="Prediction App",
+        page_icon="💫",
+        initial_sidebar_state="expanded"
+    )
 
+    theme.footer()
+    
+    # Instantiate the app and run it
+    app = PredictionApp()
+    app.run()
+
+    # Import custom CSS
+    st.markdown('<link rel="stylesheet" href="assets/styles.css">', unsafe_allow_html=True)

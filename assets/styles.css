@@ -1,0 +1,31 @@
+/* assets/styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.sidebar .sidebar-content {
+    padding: 20px;
+}
+
+.sidebar .sidebar-content h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.sidebar .sidebar-content .stButton {
+    width: 100%;
+}
+
+.main {
+    padding: 20px;
+}
+
+.stTextInput, .stNumberInput {
+    width: 100%;
+}
+
+.stSelectbox, .stMultiSelect {
+    width: 100%;
+}
+
