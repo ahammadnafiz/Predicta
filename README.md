@@ -2,6 +2,8 @@
 
 Predicta is a powerful data analysis and machine learning tool designed to streamline your workflow and provide accurate predictions.
 
+![Predicta](assets/predictass.png)
+
 ## Features
 
 - **Data Analysis**: Analyze your datasets efficiently with built-in tools for exploratory data analysis (EDA).
