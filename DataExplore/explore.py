@@ -121,6 +121,9 @@ class DataAnalyzer:
             # Get unique categories in the current category column
             categories = self.data[category_column].unique()
 
+            # Define a color palette for the pie chart slices
+            color_palette = px.colors.qualitative.Pastel
+
             # Iterate over each category and create a pie chart
             for category in categories:
                 category_data = self.data[self.data[category_column] == category]
@@ -128,10 +131,18 @@ class DataAnalyzer:
 
                 # Use Plotly Express to create the pie chart
                 fig = px.pie(names=target_counts.index, values=target_counts.values,
-                             title=f'Distribution of {target_column} in {category_column} {category}')
+                             title=f'Distribution of {target_column} in {category_column} {category}',
+                             color_discrete_sequence=color_palette)
+
+                # Customize pie chart layout
+                fig.update_traces(textposition='inside', textinfo='percent+label', pull=0.05,
+                                  marker=dict(line=dict(color='white', width=1)))
+
+                # Update title font and positioning
+                fig.update_layout(title=dict(font=dict(size=20, color='white'), x=0.5, y=0.95))
 
                 # Display the pie chart using Streamlit's st.plotly_chart
-                st.plotly_chart(fig)   
+                st.plotly_chart(fig)  
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
         Creates a pairwise scatter plot matrix for multiple variables.
