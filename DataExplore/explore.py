@@ -507,7 +507,7 @@ class DataAnalyzer:
                 except Exception as e:
                     st.error(f"An error occurred while dropping columns: {str(e)}")
         elif analysis_option == "Line Plot":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Line Plot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y_list = st.multiselect("Select Y axis", self.data.columns)
 
@@ -517,7 +517,7 @@ class DataAnalyzer:
             else:
                 st.warning("Please select at least one Y axis variable.")
         elif analysis_option == "Pie Charts":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Pie Chart</h1>", unsafe_allow_html=True)
                # Get user input for the categorical columns and the target column
             category_columns = st.multiselect("Select Categorical Columns", self.data.columns)
             target_column = st.selectbox("Select Target Column", self.data.columns)

@@ -12,7 +12,7 @@ Predicta is a powerful data analysis and machine learning tool designed to strea
 - **Streamlined Workflow**: Optimize your data science workflow with intuitive interfaces and automated processes.
 
 ## Contributing
-We welcome contributions from the community. If you have suggestions for improvements or find any issues, please open a GitHub issue or submit a pull request.
+We welcome contributions from the community. If you have suggestions for improvements or find any issues, please open a GitHub issue or submit a pull request.hi
 
 ## Contact
 For any inquiries or support, please contact [ahammadnafiz@outlook.com].
