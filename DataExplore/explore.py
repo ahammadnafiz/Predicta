@@ -83,24 +83,13 @@ class DataAnalyzer:
         profile = self.data.describe(include='all')
         return profile
 
-    def _line_plot(self, x, y, output_path=None):
-        """
-        Creates a line plot for two continuous variables.
-        """
-        # Create line trace
-        line_trace = go.Scatter(x=self.data[x], y=self.data[y], mode='lines', marker_color="#f95738")
-        
-        # Create layout
-        layout = go.Layout(title=f'Line Plot: {y} vs {x}')
-        
-        # Create figure
-        fig = go.Figure(data=[line_trace], layout=layout)
-        
-        if output_path:
-            output = os.path.join(output_path, f'Line_plot_{x}_{y}.html')
-            fig.write_html(output)
-            st.write('Figure saved at:', output)
-        
+    def _line_plot(self, x, y_list):
+        """Creates a line plot for multiple y-axis variables against a single x-axis variable. """
+        # Use Plotly Express to create the line plot
+        fig = px.line(self.data, x=x, y=y_list, markers=True)
+
+        # Update layout and display the plot using Streamlit
+        fig.update_layout(title=f'Line Plot: {", ".join(y_list)} vs {x}', xaxis_title=x, yaxis_title="Value")
         st.plotly_chart(fig)
     
     def _boxplot_with_outliers(self, x, y, output_path=None):
@@ -118,7 +107,31 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-    
+   
+    def _pie_chart(self, category_columns, target_column):
+        """
+        Creates dynamic pie charts to visualize the distribution of multiple categorical variables.
+
+        Args:
+            category_columns (list of str): List of column names for the categorical variables.
+
+        """
+       # Iterate over each category column and create a pie chart for each category
+        for category_column in category_columns:
+            # Get unique categories in the current category column
+            categories = self.data[category_column].unique()
+
+            # Iterate over each category and create a pie chart
+            for category in categories:
+                category_data = self.data[self.data[category_column] == category]
+                target_counts = category_data[target_column].value_counts()
+
+                # Use Plotly Express to create the pie chart
+                fig = px.pie(names=target_counts.index, values=target_counts.values,
+                             title=f'Distribution of {target_column} in {category_column} {category}')
+
+                # Display the pie chart using Streamlit's st.plotly_chart
+                st.plotly_chart(fig)   
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
         Creates a pairwise scatter plot matrix for multiple variables.
@@ -455,6 +468,7 @@ class DataAnalyzer:
                                                                              "Describe", 
                                                                              "Drop Columns",
                                                                              "Line Plot",
+                                                                             "Pie Charts",
                                                                              "Discrete Variable Barplot", 
                                                                              "Discrete Variable Countplot",
                                                                              "Discrete Variable Boxplot", 
@@ -483,10 +497,27 @@ class DataAnalyzer:
                 except Exception as e:
                     st.error(f"An error occurred while dropping columns: {str(e)}")
         elif analysis_option == "Line Plot":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Line Plot</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
-            y = st.selectbox("Select Y axis", self.data.columns)
-            self._line_plot(x, y)
+            y_list = st.multiselect("Select Y axis", self.data.columns)
+
+            # Ensure at least one y variable is selected
+            if y_list:
+                self._line_plot(x, y_list)
+            else:
+                st.warning("Please select at least one Y axis variable.")
+        elif analysis_option == "Pie Charts":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
+               # Get user input for the categorical columns and the target column
+            category_columns = st.multiselect("Select Categorical Columns", self.data.columns)
+            target_column = st.selectbox("Select Target Column", self.data.columns)
+
+            if category_columns and target_column:
+                # Display distribution by category for the selected columns
+                self._pie_chart(category_columns, target_column)
+            else:
+                st.warning("Please select at least one categorical column and one target column.")
+
         elif analysis_option == "Discrete Variable Barplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
