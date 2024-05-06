@@ -138,11 +138,10 @@ class DataAnalyzer:
                 fig.update_traces(textposition='inside', textinfo='percent+label', pull=0.05,
                                   marker=dict(line=dict(color='white', width=1)))
 
-                # Update title font and positioning
-                fig.update_layout(title=dict(font=dict(size=20, color='white'), x=0.5, y=0.95))
-
                 # Display the pie chart using Streamlit's st.plotly_chart
                 st.plotly_chart(fig)  
+
+                
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
         Creates a pairwise scatter plot matrix for multiple variables.
