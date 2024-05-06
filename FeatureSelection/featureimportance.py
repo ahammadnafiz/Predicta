@@ -59,22 +59,31 @@ class FeatureImportanceAnalyzer:
     def chi_square_test(self, target_column, select_k=10):
         X = self.data.drop(columns=[target_column])
         y = self.data[target_column]
+        n_features = X.shape[1]  # Number of features in X
 
-        if select_k >= 1:
-            sel_ = SelectKBest(chi2, k=select_k).fit(X, y)
-            col = X.columns[sel_.get_support()]
+        try:
+            if select_k >= 1:
+                if select_k > n_features:
+                    raise ValueError(f"k should be <= n_features = {n_features}; got {select_k}. Use k='all' to return all features.")
+                sel_ = SelectKBest(chi2, k=select_k).fit(X, y)
+                col = X.columns[sel_.get_support()]
+                
 
-        elif 0 < select_k < 1:
-            sel_ = SelectPercentile(chi2, percentile=select_k * 100).fit(X, y)
-            col = X.columns[sel_.get_support()]
+            elif 0 < select_k < 1:
+                sel_ = SelectPercentile(chi2, percentile=select_k * 100).fit(X, y)
+                col = X.columns[sel_.get_support()]
+                
+            else:
+                raise ValueError("select_k must be a positive number")
 
-        else:
-            raise ValueError("select_k must be a positive number")
-
-        st.write("Selected Features based on chi square test:")
-        st.write(col.tolist())
+            st.write("Selected Features based on chi-square test:")
+            st.write(col.tolist())
+            
+            return col
         
-        return col
+        except ValueError as e:
+            st.info(str(e))  # Display custom info message derived from the ValueError
+            return None  # Return None to indicate no features selected due to error
 
     # Method for univariate MSE feature selection
     def univariate_mse(self, X_train, y_train, X_test, y_test, threshold):
