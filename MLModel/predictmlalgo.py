@@ -18,6 +18,7 @@ import streamlit as st
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 
 
 class PredictAlgo:
@@ -46,7 +47,8 @@ class PredictAlgo:
                 st.info(f"Error converting column '{col}': {e}")
         
         return data
-   
+
+
     def get_scaler_instance(self, scaler_name):
 
         if scaler_name == 'StandardScaler':
@@ -97,6 +99,18 @@ class PredictAlgo:
         intercept = pipe.named_steps['regressor'].intercept_
         st.write('Weights:', coef)
         st.write('Bias:', intercept)
+
+        # Save the trained model to a file
+        model_file = "trained_mode_linear.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
 
     def confusion_matrix(self, y_true, y_pred, labels=None):
         """
@@ -165,6 +179,19 @@ class PredictAlgo:
         st.write('Coefficients:', coef)
         st.write('Intercept:', intercept)
 
+        # Save the trained model to a file
+        model_file = "trained_model_logistic.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
+
+
     def random_forest_classifier(self):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
@@ -200,6 +227,19 @@ class PredictAlgo:
         
         # Display confusion matrix
         self.confusion_matrix(y_test, y_pred)
+
+        # Save the trained model to a file
+        model_file = "trained_mode_random_class.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
+
 
     def ridge_regression(self, alpha=1.0):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -237,6 +277,18 @@ class PredictAlgo:
         intercept = pipe.named_steps['regressor'].intercept_
         st.write('Weights:', coef)
         st.write('Bias:', intercept)
+
+        # Save the trained model to a file
+        model_file = "trained_mode_ridge.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def lesso_regression(self, alpha=0.001):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -274,6 +326,18 @@ class PredictAlgo:
         intercept = pipe.named_steps['regressor'].intercept_
         st.write('Weights:', coef)
         st.write('Bias:', intercept)
+
+        # Save the trained model to a file
+        model_file = "trained_mode_lesso.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def knn_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -307,6 +371,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_knn.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def decision_tree_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -345,6 +421,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_dicision.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def svr_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -380,6 +468,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_svr.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def randomforest_regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=0.5):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -415,6 +515,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_rf_regression.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def extratrees_regression(self, n_estimators=100, max_depth=15, max_features=0.75, max_samples=None):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -451,6 +563,18 @@ class PredictAlgo:
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
 
+        # Save the trained model to a file
+        model_file = "trained_mode_extratree.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
+
     
     def adaboost_regression(self, n_estimators, learning_rate):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -482,6 +606,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_adaboost.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def gradientboosting_regression(self, n_estimators, max_features):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -514,6 +650,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_gradientboost.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def xgbregressor_regression(self, n_estimators, max_depth, learning_rate):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -545,6 +693,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_xgb.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     def stackingregressor_regression(self):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -582,6 +742,18 @@ class PredictAlgo:
 
         st.write('R2 score:', r2_score(y_test, y_pred))
         st.write('MAE:', mean_absolute_error(y_test, y_pred))
+
+        # Save the trained model to a file
+        model_file = "trained_mode_stack.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
     
     
     def algo(self):
