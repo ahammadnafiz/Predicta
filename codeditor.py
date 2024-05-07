@@ -5,7 +5,6 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from mplfinance.original_flavor import candlestick_ohlc
 import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import zscore
