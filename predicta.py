@@ -34,8 +34,8 @@ class PredictaApp:
         <div class="footer">
             Follow us: &nbsp;&nbsp;&nbsp;
             <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
-            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦
-            <a href="http://www.apache.org/licenses/" target="_blank">License</a> 📜
+            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦 |
+            <a href="https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE" target="_blank">License</a> 📜
         </div>
         """
         st.markdown(footer_content, unsafe_allow_html=True)
