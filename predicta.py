@@ -262,6 +262,7 @@ class PredictaApp:
         self.show_hero_image()
         self.handle_sidebar()
         
+        
 if __name__ == "__main__":
     st.set_page_config(
         page_title="Predicta",
