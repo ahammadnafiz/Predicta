@@ -13,7 +13,7 @@ class DataEncoder:
     
     def one_hot_encoding(self, data, col):
         if len(data[col].unique()) > 2:  
-            encoder = OneHotEncoder(sparse=False, drop='first')
+            encoder = OneHotEncoder(sparse_output=False, drop='first')
             encoded_values = encoder.fit_transform(data[[col]])
             new_cols = [col + '_' + str(i) for i in range(encoded_values.shape[1])]
             encoded_df = pd.DataFrame(encoded_values, columns=new_cols, index=data.index)
