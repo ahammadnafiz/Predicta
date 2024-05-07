@@ -34,7 +34,7 @@ class DataAnalyzer:
 
         except Exception as e:
             st.error("An error occurred while dropping columns: %s" % str(e))
-            return self.data
+            
 
     def convert_to_float(self, data):
         """
@@ -56,7 +56,7 @@ class DataAnalyzer:
                 st.error(f"Error converting column '{col}': {e}")
         
         return data
-    
+
     def _display_info(self):
         """
         Displays summary information about the dataset.
@@ -294,6 +294,52 @@ class DataAnalyzer:
         
         st.plotly_chart(fig)
 
+    def _scatter_3d_plot(self, x, y, z, output_path=None):
+        """
+        Creates a 3D scatter plot for three continuous variables.
+        Args:
+            x (str): Name of the x-axis variable.
+            y (str): Name of the y-axis variable.
+            z (str): Name of the z-axis variable.
+            output_path (str): Optional path to save the plot as an HTML file.
+        """
+        # Create 3D scatter trace
+        scatter_3d_trace = go.Scatter3d(
+            x=self.data[x],
+            y=self.data[y],
+            z=self.data[z],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=self.data[z],  # Color by the z variable
+                colorscale='Viridis',
+                opacity=0.8
+            )
+        )
+
+        # Create layout for the 3D scatter plot
+        layout = go.Layout(
+            title=f'3D Scatter Plot: {x} vs {y} vs {z}',
+            scene=dict(
+                xaxis=dict(title=x),
+                yaxis=dict(title=y),
+                zaxis=dict(title=z)
+            )
+        )
+
+        # Create figure
+        fig = go.Figure(data=[scatter_3d_trace], layout=layout)
+
+        # Display the 3D scatter plot using Streamlit
+        st.plotly_chart(fig)
+
+        # Save plot as HTML if output path is provided
+        if output_path:
+            scatter_3d_plot_path = os.path.join(output_path, 'scatter_3d_plot.html')
+            fig.write_html(scatter_3d_plot_path)
+            st.write('3D scatter plot saved at:', scatter_3d_plot_path)
+
+
     def _correlation_plot(self, output_path=None):
         """
         Creates a correlation plot for numerical columns.
@@ -485,7 +531,8 @@ class DataAnalyzer:
                                                                              "Continuous Variable Distplot",
                                                                              "Box Plot with Outliers",
                                                                              "Pairwise Scatter Plot Matrix",
-                                                                             "Scatter Plot", 
+                                                                             "Scatter Plot",
+                                                                             "3D Scatter Plot",
                                                                              "Categorical Heatmap",
                                                                              "Correlation Plot", 
                                                                              "Time Series Plot",
@@ -552,6 +599,13 @@ class DataAnalyzer:
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._scatter_plot(x, y)
+        elif analysis_option == "3D Scatter Plot":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>3D Scatter Plot</h1>", unsafe_allow_html=True)
+            x = st.selectbox("Select X axis", self.data.columns)
+            y = st.selectbox("Select Y axis", self.data.columns)
+            z = st.selectbox("Select Z axis", self.data.columns)
+            self._scatter_3d_plot(x, y, z)
+
         elif analysis_option == "Box Plot with Outliers":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Box Plot with Outliers</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
