@@ -83,4 +83,3 @@ class PredictaCodeEditor:
                 st.code(output, language=response_dict['lang'])
             buffer.close()
         st.markdown('</div>', unsafe_allow_html=True)
-

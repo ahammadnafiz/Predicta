@@ -75,4 +75,3 @@ class ChatPredicta:
                 st.write("Thinking...")
                 time.sleep(0.5)
                 st.write(response.content[0].text)
-

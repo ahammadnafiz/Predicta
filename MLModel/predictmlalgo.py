@@ -821,4 +821,3 @@ class PredictAlgo:
             self.xgbregressor_regression(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
         elif algorithm_option == "Stacking Regressor":
             self.stackingregressor_regression()
-

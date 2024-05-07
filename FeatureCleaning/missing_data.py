@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import logging
 import streamlit as st
-from predicta import PredictaApp
 
-class DataImputer(PredictaApp):
+
+class DataImputer:
     def __init__(self, data):
         super().__init__()
         if not isinstance(data, pd.DataFrame):
@@ -206,8 +206,8 @@ class DataImputer(PredictaApp):
             impute_value = st.text_input("Enter Arbitrary Value")
             na_cols = st.multiselect("Select Columns", self.data.columns)
             if st.button("Impute Arbitrary Value"):
-                data_impute_arb = self.impute_NA_with_arbitrary(impute_value=float(impute_value), NA_col=na_cols)
-                st.write(data_impute_arb)
+                self.impute_NA_with_arbitrary(impute_value=float(impute_value), NA_col=na_cols)
+                st.success(f"{na_cols} columns imputed successfully")
 
         elif option == "Impute NA with Interpolation":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with Interpolation</h1>", unsafe_allow_html=True)
