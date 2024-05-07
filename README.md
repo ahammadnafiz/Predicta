@@ -15,4 +15,4 @@ Predicta is a powerful data analysis and machine learning tool designed to strea
 We welcome contributions from the community. If you have suggestions for improvements or find any issues, please open a GitHub issue or submit a pull request.
 
 ## Contact
-For any inquiries or support, please contact [ahammadnafiz@outlook.com].
+For any inquiries or support, please contact ahammadnafiz@outlook.com

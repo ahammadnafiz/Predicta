@@ -127,7 +127,7 @@ class PredictaApp:
     def handle_help(self):
         """Display help information."""
         st.sidebar.markdown("#### Help")
-        st.sidebar.info("For any assistance or inquiries, please contact us at support@predicta.com.")
+        st.sidebar.info("For any assistance or inquiries, please contact us at ahammadnafiz@outlook.com")
 
     def handle_data_explore(self):
         """Handle data exploration."""
