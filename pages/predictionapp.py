@@ -17,13 +17,14 @@ class PredictionApp:
     def show_footer(self):
         """Display the footer."""
         st.markdown("---")
-        st.markdown("*copyright@infinitequants*")
+        st.markdown("*copyright@ahammadnafiz*")
 
         footer_content = """
         <div class="footer">
             Follow us: &nbsp;&nbsp;&nbsp;
             <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
-            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦
+            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦|
+            <a href="https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE" target="_blank">License</a> 📜
         </div>
         """
         st.markdown(footer_content, unsafe_allow_html=True)
