@@ -74,7 +74,7 @@ For any inquiries or support related to Predicta, please contact us at ahammadna
 
 ## License
 
-Predicta is released under the XYZ License. See [LICENSE]([LICENSE](https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE)) for more information.
+Predicta is released under the XYZ License. See ![LICENSE]([LICENSE](https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE)) for more information.
 
 ---
 
