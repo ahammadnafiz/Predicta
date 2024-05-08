@@ -26,8 +26,7 @@ Predicta is an end-to-end data analysis and machine learning tool that simplifie
 - Automated feature engineering and selection to enhance model performance.
 - Easy deployment of trained models for making predictions on new data.
 
-![Watch the demo video]([https://www.example.com/path/to/your/video.mp4](https://youtu.be/LH5vL7mDJrw))
-
+![Watch the demo video]([https://youtu.be/LH5vL7mDJrw])
 
 ## Installation
 
