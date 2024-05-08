@@ -42,7 +42,7 @@ class PredictaApp:
 
     def read_csv_with_encoding(self, uploaded_file, encodings=['latin-1']):
         """
-        Try reading a CSV file with multiple encodings until successful.
+        Try reading a CSV file with encoding until successful.
         """
 
         for encoding in encodings:

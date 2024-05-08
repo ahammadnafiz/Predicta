@@ -139,7 +139,6 @@ class DataAnalyzer:
 
                 # Display the pie chart using Streamlit's st.plotly_chart
                 st.plotly_chart(fig)  
-
                 
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
@@ -176,7 +175,6 @@ class DataAnalyzer:
         
         st.plotly_chart(heatmap_fig)
 
-    
     def _discrete_var_barplot(self, x, y, output_path=None):
         """
         Creates a bar plot for discrete variables.
@@ -238,7 +236,6 @@ class DataAnalyzer:
         
         st.plotly_chart(fig)
 
-
     def _continuous_var_distplot(self, x, output_path=None, bins=None):
         """
         Creates a distribution plot for a continuous variable.
@@ -272,7 +269,6 @@ class DataAnalyzer:
         except Exception as e:
             st.error(f"An error occurred while generating the distribution plot: {e}")
 
-
     def _scatter_plot(self, x, y, output_path=None):
         """
         Creates a scatter plot for two continuous variables.
@@ -292,6 +288,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
+
     def _scatter_3d_plot(self, x, y, z, output_path=None):
         """
         Creates a 3D scatter plot for three variables.
@@ -339,6 +336,40 @@ class DataAnalyzer:
         fig = go.Figure(data=[scatter_3d_trace], layout=layout)
 
         # Display the 3D scatter plot using Streamlit
+        st.plotly_chart(fig)
+
+    def _correlation_plot(self, output_path=None):
+        """
+        Creates a correlation plot for numerical columns.
+        """
+        corr_data = self.numeric_data.corr()
+
+        # Create heatmap trace
+        heatmap_trace = go.Heatmap(
+                                x=corr_data.columns,
+                                y=corr_data.index,
+                                z=corr_data.values,
+                                colorscale='Viridis'
+                                )
+
+        # Create layout
+        layout = go.Layout(title='Correlation Plot')
+
+        # Create figure
+        fig = go.Figure(data=[heatmap_trace], layout=layout)
+
+        # Add annotations with correlation coefficients
+        for i in range(len(corr_data)):
+            for j in range(len(corr_data)):
+                fig.add_annotation(x=corr_data.columns[i], y=corr_data.index[j],
+                                text=str(round(corr_data.iloc[j, i], 2)),
+                                showarrow=False)
+
+        if output_path:
+            output = os.path.join(output_path, 'Corr_plot.html')
+            fig.write_html(output)
+            st.write('Figure saved at:', output)
+
         st.plotly_chart(fig)
 
     def _interactive_data_table(self):
@@ -414,7 +445,6 @@ class DataAnalyzer:
             elif visualization_type == "Correlation Plot":
                 self._correlation_plot(output_path=None)
 
-        
     def _time_series_plot(self, time_column, value_column, aggregation_function='mean', time_interval='D', smoothing_technique=None, output_path=None):
         """
         Creates a time series plot based on the specified time and value columns.
@@ -453,7 +483,6 @@ class DataAnalyzer:
             ts_plot_path = os.path.join(output_path, 'time_series_plot.html')
             time_series_fig.write_html(ts_plot_path)
             st.write('Time series plot saved at:', ts_plot_path)
-
 
     def _distribution_comparison_plot(self, columns, output_path=None):
         """
