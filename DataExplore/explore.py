@@ -35,7 +35,6 @@ class DataAnalyzer:
         except Exception as e:
             st.error("An error occurred while dropping columns: %s" % str(e))
             
-
     def convert_to_float(self, data):
         """
         Convert integer and numeric object columns to float.
@@ -293,16 +292,24 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-
     def _scatter_3d_plot(self, x, y, z, output_path=None):
         """
-        Creates a 3D scatter plot for three continuous variables.
+        Creates a 3D scatter plot for three variables.
         Args:
             x (str): Name of the x-axis variable.
             y (str): Name of the y-axis variable.
             z (str): Name of the z-axis variable.
             output_path (str): Optional path to save the plot as an HTML file.
         """
+        # Check if z-axis data is categorical (string values)
+        if pd.api.types.is_string_dtype(self.data[z]):
+            st.info("The selected z-axis variable contains categorical data (string values). "
+                     "Please choose a numeric variable for the z-axis to create a 3D scatter plot.")
+            return
+
+        # Convert z data to numeric if needed
+        self.data[z] = pd.to_numeric(self.data[z], errors='coerce')
+
         # Create 3D scatter trace
         scatter_3d_trace = go.Scatter3d(
             x=self.data[x],
@@ -311,9 +318,10 @@ class DataAnalyzer:
             mode='markers',
             marker=dict(
                 size=8,
-                color=self.data[z],  # Color by the z variable
+                color=self.data[z],  # Use z variable for color
                 colorscale='Viridis',
-                opacity=0.8
+                opacity=0.8,
+                colorbar=dict(title=z)  # Optional colorbar title
             )
         )
 
@@ -332,48 +340,6 @@ class DataAnalyzer:
 
         # Display the 3D scatter plot using Streamlit
         st.plotly_chart(fig)
-
-        # Save plot as HTML if output path is provided
-        if output_path:
-            scatter_3d_plot_path = os.path.join(output_path, 'scatter_3d_plot.html')
-            fig.write_html(scatter_3d_plot_path)
-            st.write('3D scatter plot saved at:', scatter_3d_plot_path)
-
-
-    def _correlation_plot(self, output_path=None):
-        """
-        Creates a correlation plot for numerical columns.
-        """
-        corr_data = self.numeric_data.corr()
-
-        # Create heatmap trace
-        heatmap_trace = go.Heatmap(
-                                x=corr_data.columns,
-                                y=corr_data.index,
-                                z=corr_data.values,
-                                colorscale='Viridis'
-                                )
-
-        # Create layout
-        layout = go.Layout(title='Correlation Plot')
-
-        # Create figure
-        fig = go.Figure(data=[heatmap_trace], layout=layout)
-
-        # Add annotations with correlation coefficients
-        for i in range(len(corr_data)):
-            for j in range(len(corr_data)):
-                fig.add_annotation(x=corr_data.columns[i], y=corr_data.index[j],
-                                text=str(round(corr_data.iloc[j, i], 2)),
-                                showarrow=False)
-
-        if output_path:
-            output = os.path.join(output_path, 'Corr_plot.html')
-            fig.write_html(output)
-            st.write('Figure saved at:', output)
-
-        st.plotly_chart(fig)
-
 
     def _interactive_data_table(self):
         """Displays an interactive data table with Excel-like functionality."""
