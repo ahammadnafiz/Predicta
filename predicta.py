@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import streamlit as st
+import uuid
+import atexit
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
@@ -18,8 +20,20 @@ class PredictaApp:
     def __init__(self):
         self.df = None
         self.anthropi_api_key = None
-        self.modified_df_path = "modified_data.csv"
+        # Check if a user_session exists in st.session_state
+        if "user_session" not in st.session_state:
+            # Generate a new user_session if it doesn't exist
+            st.session_state.user_session = str(uuid.uuid4())
+
+        self.modified_df_path = f"modified_data_{st.session_state.user_session}.csv"
         self.load_modified_df()
+
+        #atexit.register(self.remove_modified_df)
+
+    def remove_modified_df(self):
+        """Remove the modified DataFrame file."""
+        if os.path.exists(self.modified_df_path):
+            os.remove(self.modified_df_path)
 
     def show_hero_image(self):
         """Display the hero image."""
