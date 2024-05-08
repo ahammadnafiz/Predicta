@@ -72,11 +72,6 @@ Our roadmap for Predicta includes the following upcoming features and improvemen
 
 For any inquiries or support related to Predicta, please contact us at ahammadnafiz@outlook.com
 
-## License
-
-Predicta is released under the XYZ License. See 
-![LICENSE]([https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE]) for more information.
-
 ---
 
 Thank you for exploring Predicta! We hope this tool simplifies your data analysis and machine learning tasks. Please feel free to reach out with any questions or feedback. Happy modelling!
