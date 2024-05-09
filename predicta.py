@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import streamlit as st
 import uuid
-import atexit
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
@@ -11,7 +10,7 @@ from codeditor import PredictaCodeEditor
 from DataExplore import explore
 from FeatureSelection import featureimportance
 from chat import ChatPredicta
-import theme
+from Theme import theme
 
 
 class PredictaApp:
@@ -59,10 +58,7 @@ class PredictaApp:
         st.markdown(footer_content, unsafe_allow_html=True)
 
     def read_csv_with_encoding(self, uploaded_file, encodings=['latin-1']):
-        """
-        Try reading a CSV file with encoding until successful.
-        """
-
+        """Try reading a CSV file with encoding until successful."""
         for encoding in encodings:
             try:
                 df = pd.read_csv(uploaded_file, encoding=encoding)

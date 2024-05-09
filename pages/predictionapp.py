@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import theme
+from Theme import theme
 
-# Define the PredictionApp class
+
 class PredictionApp:
     def __init__(self):
         self.model = None
@@ -114,7 +114,6 @@ if __name__ == "__main__":
 
     theme.footer()
     
-    # Instantiate the app and run it
     app = PredictionApp()
     app.run()
 
