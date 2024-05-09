@@ -34,11 +34,10 @@ class PredictaApp:
         """Remove the modified DataFrame file."""
         if os.path.exists(self.modified_df_path):
             os.remove(self.modified_df_path)
-            print(f"Removed modified DataFrame file: {self.modified_df_path}")
             # Remove the user_session from st.session_state
             del st.session_state["user_session"]
         else:
-            print("No modified DataFrame file found.")
+            st.warning("No modified DataFrame file found.")
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -281,9 +280,6 @@ class PredictaApp:
         self.load_modified_df()  
         self.show_hero_image()
         self.handle_sidebar()
-
-        my_query_params = st.query_params
-        print(my_query_params)
         
         
 if __name__ == "__main__":
