@@ -34,7 +34,7 @@ To install Predicta, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/predicta/predicta.git
+   git clone https://github.com/ahammadnafiz/Predicta.git
    ```
 
 2. Navigate to the project directory:
