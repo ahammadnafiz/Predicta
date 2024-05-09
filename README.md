@@ -39,7 +39,7 @@ To install Predicta, follow these steps:
 
 2. Navigate to the project directory:
    ```
-   cd predicta
+   cd Predicta
    ```
 
 3. Install dependencies using pip:
