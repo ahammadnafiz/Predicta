@@ -107,7 +107,7 @@ class PredictaApp:
                 "Chat With Predicta",
                 "PredictaCodeEditor",
                 "Select ML Models",
-                "Clear Modified DataFrame",
+                "Clear Modified DataSet",
             ],
         )
         if selected_option == "Data Explore":
@@ -124,7 +124,7 @@ class PredictaApp:
             self.code_editor()
         elif selected_option == "Select ML Models":
             self.handle_select_ml_models()
-        elif selected_option == "Clear Modified DataFrame":
+        elif selected_option == "Clear Modified DataSet":
             self.clear_modified_df()
         elif selected_option == "Feature Importance Analyzer":
             self.feature_importance()
@@ -284,7 +284,7 @@ class PredictaApp:
         else:
             st.warning("No modified DataFrame exists.")
             st.markdown(
-                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Perform Prediction.</div>",
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px; '>Please upload a dataset to Perform Prediction.</div>",
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", use_column_width=True)
@@ -294,6 +294,32 @@ class PredictaApp:
         """Run the Predicta application."""
         self.load_modified_df()  
         self.show_hero_image()
+        
+        custom_css = """
+        .my-message {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            color: #00171F;
+            background-color: #BEE9E8;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #EFF1C5;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        """
+        # Inject custom CSS into Streamlit once at the beginning
+        st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
+        
+        # Display styled markdown message using custom CSS class
+        st.markdown(
+            "<div class='my-message'>Please ensure that the modified dataset is cleared before exiting the application.</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.divider()
+        
         self.handle_sidebar()
         
         
