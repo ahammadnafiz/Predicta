@@ -128,11 +128,30 @@ class PredictaApp:
             self.clear_modified_df()
         elif selected_option == "Feature Importance Analyzer":
             self.feature_importance()
-            
+        
+        st.sidebar.divider()
+        
+        self.contributor_info()
+        
         st.sidebar.markdown("---")
         self.handle_about()
         self.handle_help()
 
+    def contributor_info(self):
+        nafiz_info = {
+                    "name": "Ahammad Nafiz",
+                    "role": "Curious Learner",
+                    "image_url": "https://avatars.githubusercontent.com/u/86776685?s=400&u=82112040d4a196f3d796c1aa4e7112d403c19450&v=4",
+                    "linkedin_url": "https://www.linkedin.com/in/ahammad-nafiz/",
+                    "github_url": "https://github.com/ahammadnafiz",
+                }
+        
+        st.sidebar.write("#### 👨‍💻 Developed by:")
+        st.sidebar.markdown(theme.contributor_card(
+            **nafiz_info,
+            ), 
+            unsafe_allow_html=True)
+    
     def handle_about(self):
         """Display information about the application."""
         st.sidebar.markdown("#### About")
