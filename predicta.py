@@ -20,20 +20,25 @@ class PredictaApp:
     def __init__(self):
         self.df = None
         self.anthropi_api_key = None
+
         # Check if a user_session exists in st.session_state
         if "user_session" not in st.session_state:
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
 
-        self.modified_df_path = f"modified_data_{st.session_state.user_session}.csv"
+        self.user_session = st.session_state.user_session
+        self.modified_df_path = f"modified_data_{self.user_session}.csv"
         self.load_modified_df()
-
-        #atexit.register(self.remove_modified_df)
 
     def remove_modified_df(self):
         """Remove the modified DataFrame file."""
         if os.path.exists(self.modified_df_path):
             os.remove(self.modified_df_path)
+            print(f"Removed modified DataFrame file: {self.modified_df_path}")
+            # Remove the user_session from st.session_state
+            del st.session_state["user_session"]
+        else:
+            print("No modified DataFrame file found.")
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -276,6 +281,9 @@ class PredictaApp:
         self.load_modified_df()  
         self.show_hero_image()
         self.handle_sidebar()
+
+        my_query_params = st.query_params
+        print(my_query_params)
         
         
 if __name__ == "__main__":
