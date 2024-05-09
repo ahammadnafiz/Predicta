@@ -25,7 +25,7 @@ class PredictaApp:
         if "user_session" not in st.session_state:
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
-            self.check_and_delete_modified_files()
+            # self.check_and_delete_modified_files()
 
         self.user_session = st.session_state.user_session
         self.modified_df_path = f"modified_data_{self.user_session}.csv"
