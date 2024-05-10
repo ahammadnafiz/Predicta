@@ -552,7 +552,7 @@ class DataAnalyzer:
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Line Plot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y_list = st.multiselect("Select Y axis", self.data.columns)
-
+            
             # Ensure at least one y variable is selected
             if y_list:
                 self._line_plot(x, y_list)

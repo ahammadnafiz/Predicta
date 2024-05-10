@@ -318,20 +318,37 @@ class PredictaApp:
         custom_css = """
         .my-message {
             text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            font-size: 20px;
-            color: #00171F;
-            background-color: #BEE9E8;
-            padding: 10px;
+            margin: 20px auto;
+            font-size: 18px;
+            font-weight: bold;
+            color: #191516;
+            background-color: #F7F9F9;
+            padding: 20px;
             border-radius: 10px;
             border: 2px solid #EFF1C5;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(202, 247, 226, 0.8),
+                        0 0 20px rgba(202, 247, 226, 0.6),
+                        0 0 30px rgba(202, 247, 226, 0.4);
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 10px rgba(202, 247, 226, 0.8),
+                            0 0 20px rgba(202, 247, 226, 0.6),
+                            0 0 30px rgba(202, 247, 226, 0.4);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(202, 247, 226, 0.8),
+                            0 0 30px rgba(202, 247, 226, 0.6),
+                            0 0 40px rgba(202, 247, 226, 0.4);
+            }
         }
         """
+
         # Inject custom CSS into Streamlit once at the beginning
         st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
-        
+
         # Display styled markdown message using custom CSS class
         st.markdown(
             "<div class='my-message'>Please ensure that the modified dataset is cleared before exiting the application.</div>",
