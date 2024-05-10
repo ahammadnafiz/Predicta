@@ -2,7 +2,8 @@ import os
 import pandas as pd
 import streamlit as st
 import uuid
-import glob 
+import glob
+import atexit
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
@@ -25,27 +26,10 @@ class PredictaApp:
         if "user_session" not in st.session_state:
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
-            # self.check_and_delete_modified_files()
-
+            
         self.user_session = st.session_state.user_session
         self.modified_df_path = f"modified_data_{self.user_session}.csv"
         self.load_modified_df()
-    
-    def check_and_delete_modified_files(self):
-        """Check for modified files and delete them."""
-        
-        # Define the pattern for modified files
-        pattern = "modified_data_*.csv"
-        # Find all files in the current directory that match the pattern
-        modified_files = glob.glob(pattern)
-        # If there are any modified files, delete them
-        if modified_files:
-            for file in modified_files:
-                os.remove(file)
-                print(f"Deleted modified file: {file}")
-            print("All modified files have been deleted.")
-        else:
-            print("No modified files found.")
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -297,6 +281,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", use_column_width=True)
+            
         self.show_footer()
     
     def run(self):
