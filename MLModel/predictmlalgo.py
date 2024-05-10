@@ -101,7 +101,7 @@ class PredictAlgo:
         st.write('Bias:', intercept)
 
         # Save the trained model to a file
-        model_file = "trained_mode_linear.pkl"
+        model_file = "trained_model_linear.pkl"
         joblib.dump(pipe, model_file)
 
         # Provide a download button to the user

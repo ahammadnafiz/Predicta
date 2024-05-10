@@ -4,7 +4,9 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.feature_selection import SelectKBest, SelectPercentile
 from sklearn.feature_selection import chi2
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
@@ -13,47 +15,106 @@ import plotly.graph_objects as go
 class FeatureImportanceAnalyzer:
     def __init__(self, data):
         self.data = data
+        
+    def linear_regression_importance(self, X_train, y_train):
+        try:
+            model = LinearRegression()
+            model.fit(X_train, y_train)
+
+            coefficients = model.coef_
+            feat_labels = X_train.columns
+
+            # Create Plotly figure for feature importance
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=feat_labels, y=coefficients, marker_color='crimson'))
+            fig.update_layout(title="Linear Regression Coefficients",
+                              xaxis_title="Feature Name", yaxis_title="Coefficient")
+            st.plotly_chart(fig)
+
+            return model
+        
+        except ValueError:
+            st.info("Error occurred during linear regression feature importance analysis.")
+            return None    
+    
+    def random_forest_regression_importance(self, X_train, y_train, max_depth=10, n_estimators=50, top_n=15):
+        try:
+            model = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=0)
+            model.fit(X_train, y_train)
+
+            importances = model.feature_importances_
+            indices = np.argsort(importances)[::-1]
+            feat_labels = X_train.columns
+
+            # Create Plotly figure for feature importance
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=feat_labels[indices[:top_n]], y=importances[indices[:top_n]], marker_color='crimson'))
+            fig.update_layout(title=f"Random Forest Feature Importances (Top {top_n})",
+                              xaxis_title="Feature Name", yaxis_title="Importance")
+            st.plotly_chart(fig)
+
+            return model
+        
+        except ValueError:
+            st.info("Error occurred during random forest feature importance analysis.")
+            return None
     
     def random_forest_importance(self, X_train, y_train, max_depth=10, class_weight='balanced', top_n=15, n_estimators=50, random_state=0):
-        model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
-                                       random_state=random_state, class_weight=class_weight,
-                                       n_jobs=-1)
-        model.fit(X_train, y_train)
         
-        importances = model.feature_importances_
-        indices = np.argsort(importances)[::-1]
-        feat_labels = X_train.columns
-        
-        # Create Plotly figure for feature importance
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=feat_labels[indices[:top_n]], y=importances[indices[:top_n]],
-                             error_y=dict(type='data', array=np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)[indices[:top_n]]),
-                             marker_color='crimson'))
-        fig.update_layout(title=f"Random Forest Feature Importances (Top {top_n})",
-                          xaxis_title="Feature Name", yaxis_title="Importance")
-        st.plotly_chart(fig)
+        try:
+            
+            model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
+                                        random_state=random_state, class_weight=class_weight,
+                                        n_jobs=-1)
+            model.fit(X_train, y_train)
+            
+            importances = model.feature_importances_
+            indices = np.argsort(importances)[::-1]
+            feat_labels = X_train.columns
+            
+            # Create Plotly figure for feature importance
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=feat_labels[indices[:top_n]], y=importances[indices[:top_n]],
+                                error_y=dict(type='data', array=np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)[indices[:top_n]]),
+                                marker_color='crimson'))
+            fig.update_layout(title=f"Random Forest Feature Importances (Top {top_n})",
+                            xaxis_title="Feature Name", yaxis_title="Importance")
+            st.plotly_chart(fig)
 
-        return model
+            return model
+        
+        except ValueError:
+            st.info("Please use categorical labels (e.g., classes) for classification tasks.")
+                
+            return None
 
     def gradient_boosting_importance(self, X_train, y_train, max_depth=10, top_n=15, n_estimators=50, random_state=0):
-        model = GradientBoostingClassifier(n_estimators=n_estimators, max_depth=max_depth,
-                                           random_state=random_state)
-        model.fit(X_train, y_train)
         
-        importances = model.feature_importances_
-        indices = np.argsort(importances)[::-1]
-        feat_labels = X_train.columns
-        
-        # Create Plotly figure for feature importance
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=feat_labels[indices[:top_n]], y=importances[indices[:top_n]],
-                             error_y=dict(type='data', array=np.std([tree[0].feature_importances_ for tree in model.estimators_], axis=0)[indices[:top_n]]),
-                             marker_color='crimson'))
-        fig.update_layout(title=f"Gradient Boosting Feature Importances (Top {top_n})",
-                          xaxis_title="Feature Name", yaxis_title="Importance")
-        st.plotly_chart(fig)
+        try:
+            
+            model = GradientBoostingClassifier(n_estimators=n_estimators, max_depth=max_depth,
+                                            random_state=random_state)
+            model.fit(X_train, y_train)
+            
+            importances = model.feature_importances_
+            indices = np.argsort(importances)[::-1]
+            feat_labels = X_train.columns
+            
+            # Create Plotly figure for feature importance
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=feat_labels[indices[:top_n]], y=importances[indices[:top_n]],
+                                error_y=dict(type='data', array=np.std([tree[0].feature_importances_ for tree in model.estimators_], axis=0)[indices[:top_n]]),
+                                marker_color='crimson'))
+            fig.update_layout(title=f"Gradient Boosting Feature Importances (Top {top_n})",
+                            xaxis_title="Feature Name", yaxis_title="Importance")
+            st.plotly_chart(fig)
 
-        return model
+            return model
+        
+        except ValueError:
+            st.info("Please use categorical labels (e.g., classes) for classification tasks.")
+                
+            return None
 
     # Method for chi-square test feature selection
     def chi_square_test(self, target_column, select_k=10):
@@ -62,6 +123,7 @@ class FeatureImportanceAnalyzer:
         n_features = X.shape[1]  # Number of features in X
 
         try:
+            
             if select_k >= 1:
                 if select_k > n_features:
                     raise ValueError(f"k should be <= n_features = {n_features}; got {select_k}. Use k='all' to return all features.")
@@ -81,9 +143,10 @@ class FeatureImportanceAnalyzer:
             
             return col
         
-        except ValueError as e:
-            st.info(str(e))  # Display custom info message derived from the ValueError
-            return None  # Return None to indicate no features selected due to error
+        except ValueError:
+            st.info("Please use categorical labels (e.g., classes) for classification tasks.")
+                
+            return None
 
     # Method for univariate MSE feature selection
     def univariate_mse(self, X_train, y_train, X_test, y_test, threshold):
@@ -114,13 +177,35 @@ class FeatureImportanceAnalyzer:
         target_column = st.sidebar.selectbox("Select Target Column", self.data.columns)
 
         option = st.sidebar.selectbox("Select a Model for Feature Importance Analysis", [
+            "Linear Regression Importance",
+            "Random Forest Regression Feature Importance",
             "Random Forest",
             "Gradient Boosting",
             "Chi-Square Test Feature Selection",
             "Univariate MSE Feature Selection"
         ])
+        
+        if option == "Linear Regression Importance":
+            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression Feature Importance</h2>", unsafe_allow_html=True)
 
-        if option == "Random Forest":
+            if st.button("Analyze"):
+                X = self.data.drop(columns=[target_column])
+                y = self.data[target_column]
+                self.linear_regression_importance(X, y)
+
+        elif option == "Random Forest Regression Feature Importance":
+            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression Feature Importance</h2>", unsafe_allow_html=True)
+            st.write("Configure parameters:")
+            max_depth = st.slider("Max Depth", min_value=1, max_value=20, value=10)
+            n_estimators = st.slider("Number of Estimators", min_value=10, max_value=200, value=50)
+            top_n = st.slider("Top N Features", min_value=5, max_value=30, value=15)
+
+            if st.button("Analyze"):
+                X = self.data.drop(columns=[target_column])
+                y = self.data[target_column]
+                self.random_forest_regression_importance(X, y, max_depth=max_depth, n_estimators=n_estimators, top_n=top_n)
+
+        elif option == "Random Forest":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Feature Importance</h2>", unsafe_allow_html=True)
             st.write("Configure parameters:")
             max_depth = st.slider("Max Depth", min_value=1, max_value=20, value=10)
