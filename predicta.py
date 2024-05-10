@@ -3,7 +3,9 @@ import pandas as pd
 import streamlit as st
 import uuid
 import glob
-import atexit
+import schedule
+import time
+import threading
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
@@ -30,6 +32,30 @@ class PredictaApp:
         self.user_session = st.session_state.user_session
         self.modified_df_path = f"modified_data_{self.user_session}.csv"
         self.load_modified_df()
+    
+    def schedule_cleanup_task(self):
+        """Schedule the cleanup task to run every 24 hours in a separate thread."""
+        def cleanup_task():
+            schedule.every(24).hours.do(self.check_and_delete_modified_files)
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
+
+        cleanup_thread = threading.Thread(target=cleanup_task)
+        cleanup_thread.daemon = True  # Daemonize the thread to stop it with the main program
+        cleanup_thread.start()
+    
+    def check_and_delete_modified_files(self):
+        """Check for modified files and delete them."""
+        pattern = "modified_data_*.csv"
+        modified_files = glob.glob(pattern)
+        if modified_files:
+            for file in modified_files:
+                os.remove(file)
+                print(f"Deleted modified file: {file}")
+            print("All modified files have been deleted.")
+        else:
+            print("No modified files found.")
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -327,3 +353,6 @@ if __name__ == "__main__":
     
     app = PredictaApp()
     app.run()
+    
+    # Start the cleanup task scheduler
+    app.schedule_cleanup_task()
