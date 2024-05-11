@@ -372,4 +372,4 @@ if __name__ == "__main__":
     app.run()
     
     # Start the cleanup task scheduler
-    app.schedule_cleanup_task()
+    # app.schedule_cleanup_task()
