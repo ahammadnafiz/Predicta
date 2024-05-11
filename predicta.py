@@ -26,7 +26,6 @@ class PredictaApp:
 
         # Check if a user_session exists in st.session_state
         if "user_session" not in st.session_state:
-            self.check_and_delete_modified_files()
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
             
@@ -48,17 +47,17 @@ class PredictaApp:
     #     cleanup_thread.daemon = True  # Daemonize the thread to stop it with the main program
     #     cleanup_thread.start()
     
-    def check_and_delete_modified_files(self):
-        """Check for modified files and delete them."""
-        pattern = "modified_data_*.csv"
-        modified_files = glob.glob(pattern)
-        if modified_files:
-            for file in modified_files:
-                os.remove(file)
-                print(f"Deleted modified file: {file}")
-            print("All modified files have been deleted.")
-        else:
-            print("No modified files found.")
+    # def check_and_delete_modified_files(self):
+    #     """Check for modified files and delete them."""
+    #     pattern = "modified_data_*.csv"
+    #     modified_files = glob.glob(pattern)
+    #     if modified_files:
+    #         for file in modified_files:
+    #             os.remove(file)
+    #             print(f"Deleted modified file: {file}")
+    #         print("All modified files have been deleted.")
+    #     else:
+    #         print("No modified files found.")
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -322,7 +321,7 @@ class PredictaApp:
         .my-message {
             text-align: center;
             margin: 20px auto;
-            font-size: 18px;
+            font-size: 15px;
             font-weight: bold;
             color: #191516;
             background-color: #F7F9F9;
@@ -354,7 +353,7 @@ class PredictaApp:
 
         # Display styled markdown message using custom CSS class
         st.markdown(
-            "<div class='my-message'>Please ensure that the modified dataset is cleared before exiting the application.</div>",
+            "<div class='my-message'>For security issue! Please ensure that the uploaded dataset is cleared before exiting the application.</div>",
             unsafe_allow_html=True,
         )
 
