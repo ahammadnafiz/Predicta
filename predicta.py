@@ -26,6 +26,7 @@ class PredictaApp:
 
         # Check if a user_session exists in st.session_state
         if "user_session" not in st.session_state:
+            self.check_and_delete_modified_files()
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
             
@@ -33,17 +34,19 @@ class PredictaApp:
         self.modified_df_path = f"modified_data_{self.user_session}.csv"
         self.load_modified_df()
     
-    def schedule_cleanup_task(self):
-        """Schedule the cleanup task to run every 24 hours in a separate thread."""
-        def cleanup_task():
-            schedule.every(24).hours.do(self.check_and_delete_modified_files)
-            while True:
-                schedule.run_pending()
-                time.sleep(1)
+    # I have to review this
+    
+    # def schedule_cleanup_task(self):
+    #     """Schedule the cleanup task to run every 24 hours in a separate thread."""
+    #     def cleanup_task():
+    #         schedule.every(24).hours.do(self.check_and_delete_modified_files)
+    #         while True:
+    #             schedule.run_pending()
+    #             time.sleep(1)
 
-        cleanup_thread = threading.Thread(target=cleanup_task)
-        cleanup_thread.daemon = True  # Daemonize the thread to stop it with the main program
-        cleanup_thread.start()
+    #     cleanup_thread = threading.Thread(target=cleanup_task)
+    #     cleanup_thread.daemon = True  # Daemonize the thread to stop it with the main program
+    #     cleanup_thread.start()
     
     def check_and_delete_modified_files(self):
         """Check for modified files and delete them."""
