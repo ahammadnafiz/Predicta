@@ -70,7 +70,7 @@ class PredictaApp:
 
         footer_content = """
         <div class="footer">
-            Follow us: &nbsp;&nbsp;&nbsp;
+            Follow me: &nbsp;&nbsp;&nbsp;
             <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
             <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦 |
             <a href="https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE" target="_blank">License</a> 📜
@@ -321,39 +321,23 @@ class PredictaApp:
         .my-message {
             text-align: center;
             margin: 20px auto;
-            font-size: 15px;
+            font-size: 17px;
             font-weight: bold;
-            color: #191516;
-            background-color: #F7F9F9;
+            color: #333;
+            background-color: #f8f8f8;
             padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #EFF1C5;
-            box-shadow: 0 0 10px rgba(202, 247, 226, 0.8),
-                        0 0 20px rgba(202, 247, 226, 0.6),
-                        0 0 30px rgba(202, 247, 226, 0.4);
-            animation: glow 2s infinite alternate;
-        }
-
-        @keyframes glow {
-            from {
-                box-shadow: 0 0 10px rgba(202, 247, 226, 0.8),
-                            0 0 20px rgba(202, 247, 226, 0.6),
-                            0 0 30px rgba(202, 247, 226, 0.4);
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }
-            to {
-                box-shadow: 0 0 20px rgba(202, 247, 226, 0.8),
-                            0 0 30px rgba(202, 247, 226, 0.6),
-                            0 0 40px rgba(202, 247, 226, 0.4);
-            }
-        }
-        """
+            """
 
         # Inject custom CSS into Streamlit once at the beginning
         st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
 
         # Display styled markdown message using custom CSS class
         st.markdown(
-            "<div class='my-message'>For security issue! Please ensure that the uploaded dataset is cleared before exiting the application.</div>",
+            "<div class='my-message'>Please ensure uploaded datasets are cleared before exiting the application for security.</div>",
             unsafe_allow_html=True,
         )
 
