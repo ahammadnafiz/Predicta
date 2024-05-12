@@ -47,13 +47,57 @@ class PredictaCodeEditor:
         st.markdown("<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 30px;'>Predicta Code Editor.</div>", unsafe_allow_html=True)
         st.divider()
 
-        editor_choice = st.sidebar.selectbox("Choose Editor", ["Code Editor", "Binder"])
+        editor_choice = st.sidebar.selectbox("Choose Editor", ["Jupyter", "Code Editor"])
         
-        if editor_choice == "Binder":
-            html_code = """
-            <iframe src="https://mybinder.org/?embed=true" height="800" style="width: 100%; border: none;"></iframe>
+        if editor_choice == "Jupyter":
+                        
+            url = "https://jupyter.org/try#jupyterlab"
+
+            # Define custom HTML/CSS for the responsive embedded website
+            html_code = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Embedded Website</title>
+                <style>
+                    body, html {{
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: #f5f5f5;
+                    }}
+                    .iframe-container {{
+                        width: 100%;
+                        max-width: 1200px;
+                        height: 80vh;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        overflow: hidden;
+                    }}
+                    iframe {{
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                        border-radius: 12px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="iframe-container">
+                    <iframe src="{url}"></iframe>
+                </div>
+            </body>
+            </html>
             """
+
+            # Display the custom HTML content using Markdown
             st.markdown(html_code, unsafe_allow_html=True)
+            
         else:
             
             height = 800
