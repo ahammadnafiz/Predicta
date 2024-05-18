@@ -2,10 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 import uuid
-import glob
-import schedule
-import time
-import threading
+import tempfile
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding
@@ -16,48 +13,22 @@ from FeatureSelection import featureimportance
 from chat import ChatPredicta
 from Theme import theme
 
-
 class PredictaApp:
     """Main class for the Predicta application."""
 
     def __init__(self):
         self.df = None
         self.anthropi_api_key = None
+        self.temp_dir = tempfile.gettempdir()
 
         # Check if a user_session exists in st.session_state
         if "user_session" not in st.session_state:
             # Generate a new user_session if it doesn't exist
             st.session_state.user_session = str(uuid.uuid4())
-            
-        self.user_session = st.session_state.user_session
-        self.modified_df_path = f"modified_data_{self.user_session}.csv"
-        self.load_modified_df()
-    
-    # I have to review this
-    
-    # def schedule_cleanup_task(self):
-    #     """Schedule the cleanup task to run every 24 hours in a separate thread."""
-    #     def cleanup_task():
-    #         schedule.every(24).hours.do(self.check_and_delete_modified_files)
-    #         while True:
-    #             schedule.run_pending()
-    #             time.sleep(1)
 
-    #     cleanup_thread = threading.Thread(target=cleanup_task)
-    #     cleanup_thread.daemon = True  # Daemonize the thread to stop it with the main program
-    #     cleanup_thread.start()
-    
-    # def check_and_delete_modified_files(self):
-    #     """Check for modified files and delete them."""
-    #     pattern = "modified_data_*.csv"
-    #     modified_files = glob.glob(pattern)
-    #     if modified_files:
-    #         for file in modified_files:
-    #             os.remove(file)
-    #             print(f"Deleted modified file: {file}")
-    #         print("All modified files have been deleted.")
-    #     else:
-    #         print("No modified files found.")
+        self.user_session = st.session_state.user_session
+        self.modified_df_path = os.path.join(self.temp_dir, f"modified_data_{self.user_session}.csv")
+        self.load_modified_df()
 
     def show_hero_image(self):
         """Display the hero image."""
@@ -89,7 +60,7 @@ class PredictaApp:
             except Exception as e:
                 st.info(f"Error occurred while reading with encoding {encoding}: {e}")
                 return None
-        
+
         st.info(f"Failed to read CSV file with the specified encodings.")
         return None
 
@@ -109,7 +80,7 @@ class PredictaApp:
         st.sidebar.markdown("---")
 
         self.file_upload()
-        
+
         with st.sidebar:
             self.anthropi_api_key = st.text_input(
                 "Anthropic API Key", key="file_qa_api_key", type="password"
@@ -149,30 +120,30 @@ class PredictaApp:
             self.clear_modified_df()
         elif selected_option == "Feature Importance Analyzer":
             self.feature_importance()
-        
+
         st.sidebar.divider()
-        
+
         self.contributor_info()
-        
+
         st.sidebar.markdown("---")
         self.handle_about()
         self.handle_help()
 
     def contributor_info(self):
         nafiz_info = {
-                    "name": "Ahammad Nafiz",
-                    "role": "Curious Learner",
-                    "image_url": "https://avatars.githubusercontent.com/u/86776685?s=400&u=82112040d4a196f3d796c1aa4e7112d403c19450&v=4",
-                    "linkedin_url": "https://www.linkedin.com/in/ahammad-nafiz/",
-                    "github_url": "https://github.com/ahammadnafiz",
-                }
-        
+            "name": "Ahammad Nafiz",
+            "role": "Curious Learner",
+            "image_url": "https://avatars.githubusercontent.com/u/86776685?s=400&u=82112040d4a196f3d796c1aa4e7112d403c19450&v=4",
+            "linkedin_url": "https://www.linkedin.com/in/ahammad-nafiz/",
+            "github_url": "https://github.com/ahammadnafiz",
+        }
+
         st.sidebar.write("#### 👨‍💻 Developed by:")
         st.sidebar.markdown(theme.contributor_card(
             **nafiz_info,
-            ), 
+        ),
             unsafe_allow_html=True)
-    
+
     def handle_about(self):
         """Display information about the application."""
         st.sidebar.markdown("#### About")
@@ -196,7 +167,7 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
-        
+
     def handle_impute_missing_values(self):
         """Handle missing data imputation."""
         if self.df is not None:
@@ -224,7 +195,7 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
-    
+
     def encode_data(self):
         """Handle data encoding."""
         if self.df is not None:
@@ -238,7 +209,7 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
-    
+
     def feature_importance(self):
         """Handle feature importance analysis."""
         if self.df is not None:
@@ -309,14 +280,14 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", use_column_width=True)
-            
+
         self.show_footer()
-    
+
     def run(self):
         """Run the Predicta application."""
-        self.load_modified_df()  
+        self.load_modified_df()
         self.show_hero_image()
-        
+
         custom_css = """
         .my-message {
             text-align: center;
@@ -342,10 +313,10 @@ class PredictaApp:
         )
 
         st.divider()
-        
+
         self.handle_sidebar()
-        
-        
+
+
 if __name__ == "__main__":
     st.set_page_config(
         page_title="Predicta",
@@ -353,9 +324,6 @@ if __name__ == "__main__":
         initial_sidebar_state="expanded"
     )
     theme.footer()
-    
+
     app = PredictaApp()
     app.run()
-    
-    # Start the cleanup task scheduler
-    # app.schedule_cleanup_task()
