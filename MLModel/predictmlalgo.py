@@ -5,7 +5,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, Normalizer
 from sklearn.linear_model import LinearRegression,Ridge,Lasso
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import StackingClassifier
+from xgboost import XGBClassifier
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -111,135 +116,6 @@ class PredictAlgo:
             file_name=model_file,
             mime="application/octet-stream"
             )
-
-    def confusion_matrix(self, y_true, y_pred, labels=None):
-        """
-        Display a confusion matrix based on true and predicted labels.
-
-        Parameters:
-        - y_true (array-like): True labels.
-        - y_pred (array-like): Predicted labels.
-        - labels (array-like, optional): List of class labels (default: None).
-        """
-        if labels is None:
-            labels = np.unique(np.concatenate((y_true, y_pred)))
-
-        cm = confusion_matrix(y_true, y_pred, labels=labels)
-        cm_df = pd.DataFrame(cm, index=labels, columns=labels)
-
-        st.write("Confusion Matrix:")
-        st.table(cm_df)
-
-        # Plot confusion matrix as heatmap using seaborn
-        plt.figure(figsize=(6, 4))
-        sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues', cbar=False)
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.title('Confusion Matrix')
-        st.pyplot()
-
-    def logistic_regression(self):
-        features = st.multiselect("Select Feature Columns", self.data.columns)
-        target = st.selectbox("Select Target Variable", self.data.columns)
-
-        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
-        scaler = self.get_scaler_instance(scaler_name)
-        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
-        random_state = st.number_input("Random State", value=42)
-
-        if not features:
-            st.warning("Please select at least one feature column.")
-            return
-        
-        if not target:
-            st.warning("Please select a target variable.")
-            return
-        
-        
-        X_train,X_test,y_train,y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-        
-        pipe = Pipeline([
-            ('scaler', scaler),
-            ('classifier', LogisticRegression())
-        ])
-
-        pipe.fit(X_train, y_train)
-
-        y_pred = pipe.predict(X_test)
-
-        st.write('Accuracy:', accuracy_score(y_test, y_pred))
-        st.write('Classification Report:\n', classification_report(y_test, y_pred))
-        
-        # Display confusion matrix
-        self.confusion_matrix(y_test, y_pred)
-
-        # Writing the coefficients and intercept
-        coef = pipe.named_steps['classifier'].coef_
-        intercept = pipe.named_steps['classifier'].intercept_
-        st.write('Coefficients:', coef)
-        st.write('Intercept:', intercept)
-
-        # Save the trained model to a file
-        model_file = "trained_model_logistic.pkl"
-        joblib.dump(pipe, model_file)
-
-        # Provide a download button to the user
-        st.download_button(
-            label="Download Trained Model",
-            data=open(model_file, 'rb').read(),
-            file_name=model_file,
-            mime="application/octet-stream"
-            )
-
-
-    def random_forest_classifier(self):
-        features = st.multiselect("Select Feature Columns", self.data.columns)
-        target = st.selectbox("Select Target Variable", self.data.columns)
-
-        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
-        scaler = self.get_scaler_instance(scaler_name)
-        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
-        random_state = st.number_input("Random State", value=42)
-
-
-        if not features:
-            st.warning("Please select at least one feature column.")
-            return
-        
-        if not target:
-            st.warning("Please select a target variable.")
-            return
-        
-        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-        
-        pipe = Pipeline([
-            ('scaler', scaler),
-            ('classifier', RandomForestClassifier())
-        ])
-
-        pipe.fit(X_train, y_train)
-
-        y_pred = pipe.predict(X_test)
-
-        # Display evaluation metrics
-        st.write('Accuracy:', accuracy_score(y_test, y_pred))
-        st.write('Classification Report:\n', classification_report(y_test, y_pred))
-        
-        # Display confusion matrix
-        self.confusion_matrix(y_test, y_pred)
-
-        # Save the trained model to a file
-        model_file = "trained_mode_random_class.pkl"
-        joblib.dump(pipe, model_file)
-
-        # Provide a download button to the user
-        st.download_button(
-            label="Download Trained Model",
-            data=open(model_file, 'rb').read(),
-            file_name=model_file,
-            mime="application/octet-stream"
-            )
-
 
     def ridge_regression(self, alpha=1.0):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -754,70 +630,567 @@ class PredictAlgo:
             file_name=model_file,
             mime="application/octet-stream"
             )
-    
+        
+    def confusion_matrix(self, y_true, y_pred, labels=None):
+        """
+        Display a confusion matrix based on true and predicted labels.
+        """
+        if labels is None:
+            labels = np.unique(np.concatenate((y_true, y_pred)))
+
+        cm = confusion_matrix(y_true, y_pred, labels=labels)
+        cm_df = pd.DataFrame(cm, index=labels, columns=labels)
+
+        st.write("Confusion Matrix:")
+        st.table(cm_df)
+
+        # Plot confusion matrix as heatmap using seaborn
+        plt.figure(figsize=(6, 4))
+        sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues', cbar=False)
+        plt.xlabel('Predicted')
+        plt.ylabel('Actual')
+        plt.title('Confusion Matrix')
+        st.pyplot()
+
+    def logistic_regression(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+        
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+        
+        
+        X_train,X_test,y_train,y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+        
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', LogisticRegression())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+
+        # Writing the coefficients and intercept
+        coef = pipe.named_steps['classifier'].coef_
+        intercept = pipe.named_steps['classifier'].intercept_
+        st.write('Coefficients:', coef)
+        st.write('Intercept:', intercept)
+
+        # Save the trained model to a file
+        model_file = "trained_model_logistic.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
+
+    def random_forest_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+        
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+        
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+        
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', RandomForestClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+
+        # Save the trained model to a file
+        model_file = "trained_mode_random_class.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+            )
+
+    def decision_tree_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', DecisionTreeClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_decision_tree_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def knn_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', KNeighborsClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+        
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_knn_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def support_vector_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', SVC())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_support_vector_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def gradient_boosting_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', GradientBoostingClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_gradient_boosting_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def adaboost_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', AdaBoostClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_adaboost_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def xgboost_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+            
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+            
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+            
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', XGBClassifier())
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_xgboost_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
+    def stacking_classifier(self):
+        features = st.multiselect("Select Feature Columns", self.data.columns)
+        target = st.selectbox("Select Target Variable", self.data.columns)
+
+        scaler_name = st.selectbox("Select Scaler Method", ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'Normalizer'])
+        scaler = self.get_scaler_instance(scaler_name)
+        test_size = st.slider("Test Size (proportion)", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+        random_state = st.number_input("Random State", value=42)
+
+        if not features:
+            st.warning("Please select at least one feature column.")
+            return
+                
+        if not target:
+            st.warning("Please select a target variable.")
+            return
+                
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+                
+        # Define base estimators
+        base_estimators = [
+            ('decision_tree', DecisionTreeClassifier()),
+            ('random_forest', RandomForestClassifier())
+            # Add more base estimators as needed
+        ]
+        
+        # Initialize StackingClassifier
+        stacking_classifier = StackingClassifier(
+            estimators=base_estimators,
+            final_estimator=LogisticRegression()  # You can replace LogisticRegression() with any other final estimator
+        )
+
+        pipe = Pipeline([
+            ('scaler', scaler),
+            ('classifier', stacking_classifier)
+        ])
+
+        pipe.fit(X_train, y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        # Display evaluation metrics
+        st.write('Accuracy:', accuracy_score(y_test, y_pred))
+        st.write('Classification Report:\n', classification_report(y_test, y_pred))
+        
+        # Display confusion matrix
+        self.confusion_matrix(y_test, y_pred)
+            
+        # Save the trained model to a file
+        model_file = "trained_model_stacking_classifier.pkl"
+        joblib.dump(pipe, model_file)
+
+        # Provide a download button to the user
+        st.download_button(
+            label="Download Trained Model",
+            data=open(model_file, 'rb').read(),
+            file_name=model_file,
+            mime="application/octet-stream"
+        )
+
     
     def algo(self):
-        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Predictive Algorithms</h1>", unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
-        st.dataframe(self.data, width=800)
-        
-        algorithm_option = st.sidebar.selectbox("Select Algorithm", ["Linear Regression", 
-                                                                     "Logistic Regression",
-                                                                     "Random Forest Classifier",
-                                                                     "Ridge Regression", 
-                                                                     "Lasso Regression",
-                                                                     "KNN Regression", 
-                                                                     "Decision Tree Regression", 
-                                                                     "SVR Regression", 
-                                                                     "Random Forest Regression", 
-                                                                     "Extra Trees Regression", 
-                                                                     "AdaBoost Regression", 
-                                                                     "Gradient Boosting Regression", 
-                                                                     "XGBRegressor Regression", 
-                                                                     "Stacking Regressor"])
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Select Model Type</h1>", unsafe_allow_html=True)
+        model_type = st.sidebar.radio("Select Model Type", ["Predictive", "Classification"])
 
-        if algorithm_option == "Linear Regression":
-            self.linear_regression()
-        elif algorithm_option == "Logistic Regression":
-            self.logistic_regression()
-        elif algorithm_option == "Random Forest Classifier":
-            self.random_forest_classifier()
-        elif algorithm_option == "Ridge Regression":
-            alpha = st.number_input("Enter alpha value", min_value=0.001, max_value=1000.0, value=1.0)
-            self.ridge_regression(alpha=alpha)  
-        elif algorithm_option == "Lasso Regression":
-            alpha = st.number_input("Enter alpha value", min_value=0.001, max_value=1000.0, value=0.001)
-            self.lesso_regression(alpha=alpha)  
-        elif algorithm_option == "KNN Regression":
-            self.knn_regression()
-        elif algorithm_option == "Decision Tree Regression":
-            self.decision_tree_regression()
-        elif algorithm_option == "SVR Regression":
-            self.svr_regression()
-        elif algorithm_option == "Random Forest Regression":
-            n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
-            max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
-            max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
-            max_samples = st.number_input("Enter max samples", min_value=0.1, max_value=1.0, value=0.5)
-            self.randomforest_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features, max_samples=max_samples)
-        elif algorithm_option == "Extra Trees Regression":
-            n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
-            max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
-            max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
-            self.extratrees_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features)
-        elif algorithm_option == "AdaBoost Regression":
-            n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
-            learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=1.0)
-            self.adaboost_regression(n_estimators=n_estimators, learning_rate=learning_rate)
-        elif algorithm_option == "Gradient Boosting Regression":
-            n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
-            max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
-            self.gradientboosting_regression(n_estimators=n_estimators, max_features=max_features)
-        elif algorithm_option == "XGBRegressor Regression":
-            n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
-            max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=3)
-            learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=0.1)
-            self.xgbregressor_regression(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
-        elif algorithm_option == "Stacking Regressor":
-            self.stackingregressor_regression()
+        if model_type == "Predictive":
+            st.markdown("<h1 style='text-align: center; font-size: 30px;'>Predictive Algorithms</h1>", unsafe_allow_html=True)
+            st.markdown("---")
+            st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
+            st.dataframe(self.data, width=800)
+            
+            algorithm_option = st.sidebar.selectbox("Select Algorithm", ["Linear Regression", 
+                                                                        "Ridge Regression", 
+                                                                        "Lasso Regression",
+                                                                        "KNN Regression", 
+                                                                        "Decision Tree Regression", 
+                                                                        "SVR Regression", 
+                                                                        "Random Forest Regression", 
+                                                                        "Extra Trees Regression", 
+                                                                        "AdaBoost Regression", 
+                                                                        "Gradient Boosting Regression", 
+                                                                        "XGBRegressor Regression", 
+                                                                        "Stacking Regressor"])
+
+            if algorithm_option == "Linear Regression":
+                self.linear_regression()
+            elif algorithm_option == "Ridge Regression":
+                alpha = st.number_input("Enter alpha value", min_value=0.001, max_value=1000.0, value=1.0)
+                self.ridge_regression(alpha=alpha)  
+            elif algorithm_option == "Lasso Regression":
+                alpha = st.number_input("Enter alpha value", min_value=0.001, max_value=1000.0, value=0.001)
+                self.lasso_regression(alpha=alpha)  
+            elif algorithm_option == "KNN Regression":
+                self.knn_regression()
+            elif algorithm_option == "Decision Tree Regression":
+                self.decision_tree_regression()
+            elif algorithm_option == "SVR Regression":
+                self.svr_regression()
+            elif algorithm_option == "Random Forest Regression":
+                n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
+                max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
+                max_samples = st.number_input("Enter max samples", min_value=0.1, max_value=1.0, value=0.5)
+                self.randomforest_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features, max_samples=max_samples)
+            elif algorithm_option == "Extra Trees Regression":
+                n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
+                max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
+                self.extratrees_regression(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features)
+            elif algorithm_option == "AdaBoost Regression":
+                n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
+                learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=1.0)
+                self.adaboost_regression(n_estimators=n_estimators, learning_rate=learning_rate)
+            elif algorithm_option == "Gradient Boosting Regression":
+                n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
+                max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
+                self.gradientboosting_regression(n_estimators=n_estimators, max_features=max_features)
+            elif algorithm_option == "XGBRegressor Regression":
+                n_estimators = st.number_input("Enter number of estimators", min_value=1, max_value=1000, value=100)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=3)
+                learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=0.1)
+                self.xgbregressor_regression(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
+            elif algorithm_option == "Stacking Regressor":
+                self.stackingregressor_regression()
+                
+        elif model_type == "Classification":
+            st.markdown("<h1 style='text-align: center; font-size: 30px;'>Classification Algorithms</h1>", unsafe_allow_html=True)
+            st.markdown("---")
+            st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
+            st.dataframe(self.data, width=800)
+
+            algorithm_option = st.sidebar.selectbox("Select Algorithm", ["Logistic Regression",
+                                                                        "Random Forest Classifier",
+                                                                        "Decision Tree Classifier",
+                                                                        "KNN Classifier",
+                                                                        "Support Vector Classifier",
+                                                                        "Gradient Boosting Classifier",
+                                                                        "AdaBoost Classifier",
+                                                                        "XGBoost Classifier",
+                                                                        "Stacking Classifier"])
+
+            if algorithm_option == "Logistic Regression":
+                self.logistic_regression()
+            elif algorithm_option == "Random Forest Classifier":
+                self.random_forest_classifier()
+            elif algorithm_option == "Decision Tree Classifier":
+                self.decision_tree_classifier()
+            elif algorithm_option == "KNN Classifier":
+                self.knn_classifier()
+            elif algorithm_option == "Support Vector Classifier":
+                self.support_vector_classifier()
+            elif algorithm_option == "Gradient Boosting Classifier":
+                self.gradient_boosting_classifier()
+            elif algorithm_option == "AdaBoost Classifier":
+                self.adaboost_classifier()
+            elif algorithm_option == "XGBoost Classifier":
+                self.xgboost_classifier()
+            elif algorithm_option == "Stacking Classifier":
+                self.stacking_classifier()
