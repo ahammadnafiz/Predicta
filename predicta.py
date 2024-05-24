@@ -9,7 +9,7 @@ from FeatureEngineering import encoding
 from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
 from DataExplore import explore
-from FeatureSelection import featureimportance
+from FeatureSelection import featureimportance, hyperparameter
 from chat import ChatPredicta
 from Theme import theme
 
@@ -96,6 +96,7 @@ class PredictaApp:
                 "Detect Outlier",
                 "Encoder",
                 "Feature Importance Analyzer",
+                "Best Parameter Selector",
                 "Chat With Predicta",
                 "PredictaCodeEditor",
                 "Select ML Models",
@@ -120,6 +121,8 @@ class PredictaApp:
             self.clear_modified_df()
         elif selected_option == "Feature Importance Analyzer":
             self.feature_importance()
+        elif selected_option == "Best Parameter Selector":
+            self.find_parameter()
 
         st.sidebar.divider()
 
@@ -223,6 +226,20 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
+    
+    def find_parameter(self):
+        """Find best parameter"""
+        if self.df is not None:
+            out = hyperparameter.BestParam(self.df)
+            out.select_hyper()
+            self.save_modified_df()
+        else:
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to find best parameters.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("assets/uploadfile.png", use_column_width=True)
+        self.show_footer()
 
     def handle_chat_with_predicta(self):
         """Handle chat interaction with Predicta."""
@@ -276,7 +293,7 @@ class PredictaApp:
         else:
             st.warning("No modified DataFrame exists.")
             st.markdown(
-                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px; '>Please upload a dataset to Perform Prediction.</div>",
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px; '>First Upload a DataSet</div>",
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", use_column_width=True)
