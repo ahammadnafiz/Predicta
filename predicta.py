@@ -5,7 +5,7 @@ import uuid
 import tempfile
 
 from FeatureCleaning import missing_data, outlier
-from FeatureEngineering import encoding
+from FeatureEngineering import encoding, transform
 from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
 from DataExplore import explore
@@ -95,6 +95,7 @@ class PredictaApp:
                 "Impute Missing Values",
                 "Detect Outlier",
                 "Encoder",
+                "Data Transformer",
                 "Feature Importance Analyzer",
                 "Best Parameter Selector",
                 "Chat With Predicta",
@@ -123,6 +124,8 @@ class PredictaApp:
             self.feature_importance()
         elif selected_option == "Best Parameter Selector":
             self.find_parameter()
+        elif selected_option == "Data Transformer":
+            self.data_transformer()
 
         st.sidebar.divider()
 
@@ -208,6 +211,20 @@ class PredictaApp:
         else:
             st.markdown(
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to encode data.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("assets/uploadfile.png", use_column_width=True)
+        self.show_footer()
+    
+    def data_transformer(self):
+        """Handle data encoding."""
+        if self.df is not None:
+            out = transform.DataTransformer(self.df)
+            self.df = out.transformer()
+            self.save_modified_df()
+        else:
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to transform data.</div>",
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", use_column_width=True)
