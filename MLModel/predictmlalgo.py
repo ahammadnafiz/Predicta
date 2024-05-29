@@ -18,6 +18,7 @@ from sklearn.ensemble import RandomForestRegressor,GradientBoostingRegressor,Ada
 from sklearn.svm import SVR
 from xgboost import XGBRegressor
 from sklearn.ensemble import StackingRegressor
+from imblearn.over_sampling import SMOTE
 from sklearn.metrics import r2_score,mean_absolute_error
 import streamlit as st
 from sklearn.metrics import confusion_matrix
@@ -52,7 +53,6 @@ class PredictAlgo:
                 st.info(f"Error converting column '{col}': {e}")
         
         return data
-
 
     def get_scaler_instance(self, scaler_name):
 
@@ -450,7 +450,6 @@ class PredictAlgo:
             file_name=model_file,
             mime="application/octet-stream"
             )
-
     
     def adaboost_regression(self, n_estimators, learning_rate):
         features = st.multiselect("Select Feature Columns", self.df.columns)
@@ -669,15 +668,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
         
+        use_smote = st.checkbox("Use SMOTE")
         
-        X_train,X_test,y_train,y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+        X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
         
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', LogisticRegression())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -723,14 +730,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
         
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
         
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', RandomForestClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -770,14 +786,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', DecisionTreeClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -817,14 +842,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', KNeighborsClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
         
@@ -864,14 +898,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', SVC())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -911,14 +954,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', GradientBoostingClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -958,14 +1010,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', AdaBoostClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -1005,14 +1066,23 @@ class PredictAlgo:
             st.warning("Please select a target variable.")
             return
             
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
-            
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
+
         pipe = Pipeline([
             ('scaler', scaler),
             ('classifier', XGBClassifier())
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 
@@ -1051,8 +1121,17 @@ class PredictAlgo:
         if not target:
             st.warning("Please select a target variable.")
             return
-                
+        
+        use_smote = st.checkbox("Use SMOTE")
+        
         X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
+        
+        if use_smote:
+            # Apply SMOTE to balance the class distribution
+            smote = SMOTE(random_state=random_state)
+            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        else:
+            X_train_resampled, y_train_resampled = X_train, y_train
                 
         # Define base estimators
         base_estimators = [
@@ -1072,7 +1151,7 @@ class PredictAlgo:
             ('classifier', stacking_classifier)
         ])
 
-        pipe.fit(X_train, y_train)
+        pipe.fit(X_train_resampled, y_train_resampled)
 
         y_pred = pipe.predict(X_test)
 

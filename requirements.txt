@@ -12,3 +12,4 @@ streamlit==1.34.0
 streamlit-code-editor==0.1.12
 xgboost==1.5.0
 category_encoders==2.6.3
+imbalanced-learn==0.12.3
