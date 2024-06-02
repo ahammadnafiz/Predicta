@@ -651,7 +651,7 @@ class PredictAlgo:
         plt.title('Confusion Matrix')
         st.pyplot()
 
-    def logistic_regression(self):
+    def logistic_regression(self, C, max_iter):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -681,7 +681,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', LogisticRegression())
+            ('classifier', LogisticRegression(C=C, max_iter=max_iter))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -712,7 +712,7 @@ class PredictAlgo:
             mime="application/octet-stream"
             )
 
-    def random_forest_classifier(self):
+    def random_forest_classifier(self, n_estimators, max_depth, max_features):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -743,7 +743,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', RandomForestClassifier())
+            ('classifier', RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -769,7 +769,7 @@ class PredictAlgo:
             mime="application/octet-stream"
             )
 
-    def decision_tree_classifier(self):
+    def decision_tree_classifier(self, max_depth, min_samples_split):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -799,7 +799,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', DecisionTreeClassifier())
+            ('classifier', DecisionTreeClassifier(max_depth=max_depth, min_samples_split=min_samples_split))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -825,7 +825,7 @@ class PredictAlgo:
             mime="application/octet-stream"
         )
 
-    def knn_classifier(self):
+    def knn_classifier(self, n_neighbors, algorithm):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -855,7 +855,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', KNeighborsClassifier())
+            ('classifier', KNeighborsClassifier(n_neighbors=n_neighbors, algorithm=algorithm))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -881,7 +881,7 @@ class PredictAlgo:
             mime="application/octet-stream"
         )
 
-    def support_vector_classifier(self):
+    def support_vector_classifier(self, C, kernel):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -911,7 +911,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', SVC())
+            ('classifier', SVC(C=C, kernel=kernel))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -937,7 +937,7 @@ class PredictAlgo:
             mime="application/octet-stream"
         )
 
-    def gradient_boosting_classifier(self):
+    def gradient_boosting_classifier(self, n_estimators, learning_rate, max_depth):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -967,7 +967,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', GradientBoostingClassifier())
+            ('classifier', GradientBoostingClassifier(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -993,7 +993,7 @@ class PredictAlgo:
             mime="application/octet-stream"
         )
 
-    def adaboost_classifier(self):
+    def adaboost_classifier(self, n_estimators, learning_rate):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -1023,7 +1023,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', AdaBoostClassifier())
+            ('classifier', AdaBoostClassifier(n_estimators=n_estimators, learning_rate=learning_rate))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -1049,7 +1049,7 @@ class PredictAlgo:
             mime="application/octet-stream"
         )
 
-    def xgboost_classifier(self):
+    def xgboost_classifier(self, n_estimators, max_depth, learning_rate):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
 
@@ -1079,7 +1079,7 @@ class PredictAlgo:
 
         pipe = Pipeline([
             ('scaler', scaler),
-            ('classifier', XGBClassifier())
+            ('classifier', XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate))
         ])
 
         pipe.fit(X_train_resampled, y_train_resampled)
@@ -1256,20 +1256,39 @@ class PredictAlgo:
                                                                         "Stacking Classifier"])
 
             if algorithm_option == "Logistic Regression":
-                self.logistic_regression()
+                C = st.number_input("Enter regularization strength (C)", min_value=0.01, max_value=100.0, value=1.0)
+                max_iter = st.number_input("Enter max iterations", min_value=100, max_value=1000, value=100)
+                self.logistic_regression(C=C, max_iter=max_iter)
             elif algorithm_option == "Random Forest Classifier":
-                self.random_forest_classifier()
+                n_estimators = st.number_input("Enter number of estimators", min_value=10, max_value=1000, value=100)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
+                max_features = st.number_input("Enter max features", min_value=0.1, max_value=1.0, value=0.75)
+                self.random_forest_classifier(n_estimators=n_estimators, max_depth=max_depth, max_features=max_features)
             elif algorithm_option == "Decision Tree Classifier":
-                self.decision_tree_classifier()
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=15)
+                min_samples_split = st.number_input("Enter min samples split", min_value=2, max_value=10, value=2)
+                self.decision_tree_classifier(max_depth=max_depth, min_samples_split=min_samples_split)
             elif algorithm_option == "KNN Classifier":
-                self.knn_classifier()
+                n_neighbors = st.number_input("Enter number of neighbors", min_value=1, max_value=50, value=5)
+                algorithm = st.selectbox("Select algorithm", ["auto", "ball_tree", "kd_tree", "brute"])
+                self.knn_classifier(n_neighbors=n_neighbors, algorithm=algorithm)
             elif algorithm_option == "Support Vector Classifier":
-                self.support_vector_classifier()
+                C = st.number_input("Enter regularization parameter (C)", min_value=0.01, max_value=100.0, value=1.0)
+                kernel = st.selectbox("Select kernel", ["linear", "poly", "rbf", "sigmoid"])
+                self.support_vector_classifier(C=C, kernel=kernel)
             elif algorithm_option == "Gradient Boosting Classifier":
-                self.gradient_boosting_classifier()
+                n_estimators = st.number_input("Enter number of estimators", min_value=10, max_value=1000, value=100)
+                learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=0.1)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=3)
+                self.gradient_boosting_classifier(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth)
             elif algorithm_option == "AdaBoost Classifier":
-                self.adaboost_classifier()
+                n_estimators = st.number_input("Enter number of estimators", min_value=10, max_value=1000, value=50)
+                learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=1.0)
+                self.adaboost_classifier(n_estimators=n_estimators, learning_rate=learning_rate)
             elif algorithm_option == "XGBoost Classifier":
-                self.xgboost_classifier()
+                n_estimators = st.number_input("Enter number of estimators", min_value=10, max_value=1000, value=100)
+                max_depth = st.number_input("Enter max depth", min_value=1, max_value=100, value=3)
+                learning_rate = st.number_input("Enter learning rate", min_value=0.01, max_value=1.0, value=0.1)
+                self.xgboost_classifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
             elif algorithm_option == "Stacking Classifier":
                 self.stacking_classifier()

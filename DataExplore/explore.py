@@ -14,26 +14,6 @@ class DataAnalyzer:
             raise ValueError("Input data must be a pandas DataFrame")
         self.data = data
         self.numeric_data = self.data.select_dtypes(include='number')
-
-    
-    def _drop_columns(self, columns_to_drop):
-        """
-        Drops the specified columns from the DataFrame.
-        """
-        try:
-            # Check if the columns exist in the DataFrame
-            non_existent_cols = [col for col in columns_to_drop if col not in self.data.columns]
-            if non_existent_cols:
-                st.error("The following columns do not exist in the DataFrame and will be ignored: %s" % ", ".join(non_existent_cols))
-                columns_to_drop = [col for col in columns_to_drop if col in self.data.columns]
-
-            # Drop the specified columns
-            self.data = self.data.drop(columns_to_drop, axis=1)
-            st.info("Dropped the following columns: %s" % ", ".join(columns_to_drop))
-            return self.data
-
-        except Exception as e:
-            st.error("An error occurred while dropping columns: %s" % str(e))
             
     def convert_to_float(self, data):
         """
@@ -55,32 +35,6 @@ class DataAnalyzer:
                 st.error(f"Error converting column '{col}': {e}")
         
         return data
-
-    def _display_info(self):
-        """
-        Displays summary information about the dataset.
-        """
-        st.markdown("<h1 style='text-align: center; font-size: 25px;'>Dataset Information</h1>", unsafe_allow_html=True)
-        st.write(f"Rows: {self.data.shape[0]}")
-        st.write(f"Columns: {self.data.shape[1]}")
-        st.write("Info:")
-        
-        # Get the summary information of the DataFrame
-        summary_info = self.data.dtypes.reset_index()
-        summary_info.columns = ['Column', 'Dtype']
-        summary_info['Non-Null Count'] = self.data.count().values
-        
-        # Create DataFrame from the summary information
-        summary = pd.DataFrame(summary_info)
-        st.write(summary)
-
-    def _describe(self):
-        """Generates descriptive statistics for numerical columns."""
-        #data = self.convert_to_float(self.data)
-
-        # Generate descriptive statistics
-        profile = self.data.describe(include='all')
-        return profile
 
     def _line_plot(self, x, y_list):
         """Creates a line plot for multiple y-axis variables against a single x-axis variable. """
@@ -515,9 +469,7 @@ class DataAnalyzer:
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
         st.dataframe(self.data, width=800)
         
-        analysis_option = st.sidebar.selectbox("Select Exploration Option", ["Dataset Information", 
-                                                                             "Describe", 
-                                                                             "Drop Columns",
+        analysis_option = st.sidebar.selectbox("Select Exploration Option", [
                                                                              "Line Plot",
                                                                              "Pie Charts",
                                                                              "Discrete Variable Barplot", 
@@ -534,21 +486,8 @@ class DataAnalyzer:
                                                                              "Distribution Comparison Plot", 
                                                                              "Interactive Data Table"])
         
-        if analysis_option == "Dataset Information":
-            self._display_info()
-        elif analysis_option == "Describe":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Descriptive Statistics</h1>", unsafe_allow_html=True)
-            st.dataframe(self._describe(), width=800)
-        elif analysis_option == "Drop Columns":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Columns</h1>", unsafe_allow_html=True)
-            columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
-            if st.button("Drop Columns"):
-                try:
-                    self.data = self._drop_columns(columns_to_drop)
-                    st.dataframe(self.data)
-                except Exception as e:
-                    st.error(f"An error occurred while dropping columns: {str(e)}")
-        elif analysis_option == "Line Plot":
+
+        if analysis_option == "Line Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Line Plot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y_list = st.multiselect("Select Y axis", self.data.columns)

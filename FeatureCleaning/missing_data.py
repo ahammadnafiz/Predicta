@@ -14,6 +14,25 @@ class DataImputer:
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
 
+    def _drop_columns(self, columns_to_drop):
+        """
+        Drops the specified columns from the DataFrame.
+        """
+        try:
+            # Check if the columns exist in the DataFrame
+            non_existent_cols = [col for col in columns_to_drop if col not in self.data.columns]
+            if non_existent_cols:
+                st.error("The following columns do not exist in the DataFrame and will be ignored: %s" % ", ".join(non_existent_cols))
+                columns_to_drop = [col for col in columns_to_drop if col in self.data.columns]
+
+            # Drop the specified columns
+            self.data = self.data.drop(columns_to_drop, axis=1)
+            st.info("Dropped the following columns: %s" % ", ".join(columns_to_drop))
+            return self.data
+
+        except Exception as e:
+            st.error("An error occurred while dropping columns: %s" % str(e))
+    
     def check_missing(self, output_path=None):
         try:
             result = pd.concat([self.data.isnull().sum(), self.data.isnull().mean()], axis=1)
@@ -162,6 +181,7 @@ class DataImputer:
 
         
         option = st.sidebar.selectbox("Select an Imputation Method", [
+            "Drop Columns",
             "Check Missing Values",
             "Drop Missing Values",
             "Add Variable to Denote NA",
@@ -179,6 +199,16 @@ class DataImputer:
             if st.button("Check"):
                 self.check_missing()
                 st.write(self.check_missing())
+                
+        elif option == "Drop Columns":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Columns</h1>", unsafe_allow_html=True)
+            columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
+            if st.button("Drop Columns"):
+                try:
+                    self.data = self._drop_columns(columns_to_drop)
+                    st.dataframe(self.data)
+                except Exception as e:
+                    st.error(f"An error occurred while dropping columns: {str(e)}")
 
         elif option == "Drop Missing Values":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Missing Values</h1>", unsafe_allow_html=True)

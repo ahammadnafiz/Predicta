@@ -8,7 +8,7 @@ from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding, transform
 from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
-from DataExplore import explore
+from DataExplore import explore, overview
 from FeatureSelection import featureimportance, hyperparameter
 from chat import ChatPredicta
 from Theme import theme
@@ -90,12 +90,13 @@ class PredictaApp:
         st.sidebar.title("Tools")
         selected_option = st.sidebar.radio(
             "Select Option",
-            [
-                "Data Explore",
-                "Impute Missing Values",
+            [   
+                "Dataset Overview",
+                "Clean Data",
                 "Detect Outlier",
                 "Encoder",
                 "Data Transformer",
+                "Data Analysis",
                 "Feature Importance Analyzer",
                 "Best Parameter Selector",
                 "Chat With Predicta",
@@ -104,10 +105,12 @@ class PredictaApp:
                 "Clear Modified DataSet",
             ],
         )
-        if selected_option == "Data Explore":
+        if selected_option == "Data Analysis":
             self.handle_data_explore()
-        elif selected_option == "Impute Missing Values":
-            self.handle_impute_missing_values()
+        elif selected_option == "Dataset Overview":
+            self.overview_methods()
+        elif selected_option == "Clean Data":
+            self.clean_data()
         elif selected_option == "Detect Outlier":
             self.handle_detect_outlier()
         elif selected_option == 'Encoder':
@@ -160,6 +163,19 @@ class PredictaApp:
         st.sidebar.markdown("#### Help")
         st.sidebar.info("For any assistance or inquiries, please contact us at ahammadnafiz@outlook.com")
 
+    def overview_methods(self):
+        if self.df is not None:
+            options = overview.DataOverview(self.df)
+            self.df = options.data_overview()
+            self.save_modified_df()
+        else:
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to see Informations.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("assets/uploadfile.png", use_column_width=True)
+        self.show_footer()
+    
     def handle_data_explore(self):
         """Handle data exploration."""
         if self.df is not None:
@@ -174,7 +190,7 @@ class PredictaApp:
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
 
-    def handle_impute_missing_values(self):
+    def clean_data(self):
         """Handle missing data imputation."""
         if self.df is not None:
             impute = missing_data.DataImputer(self.df)

@@ -87,24 +87,28 @@ class BestParam:
         
         if option == "Linear Regression":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
+            st.write("Configure parameters:")
             
             if st.button("Best Param"):
                 self.linear_regression(feature_column, self.data[target_column])
         
         elif option == "Random Forest Regression":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
+            st.write("Configure parameters:")
             
             if st.button("Best Param"):
                 self.random_forest_regression(feature_column, self.data[target_column])
         
         elif option == "Random Forest Classifier":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
+            st.write("Configure parameters:")
             
             if st.button("Best Param"):
                 self.random_forest_classifier(feature_column, self.data[target_column])
         
         elif option == "Gradient Boosting Classifier":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
+            st.write("Configure parameters:")
             
             if st.button("Best Param"):
                 self.gradient_boosting_classifier(feature_column, self.data[target_column])
