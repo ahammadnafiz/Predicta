@@ -13,3 +13,6 @@ streamlit-code-editor==0.1.12
 xgboost==1.5.0
 category_encoders==2.6.3
 imbalanced-learn==0.12.3
+langchain==0.1.13
+langchain-core==0.1.33
+langchain-groq ==0.1.4

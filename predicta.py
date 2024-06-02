@@ -81,11 +81,11 @@ class PredictaApp:
 
         self.file_upload()
 
-        with st.sidebar:
-            self.anthropi_api_key = st.text_input(
-                "Anthropic API Key", key="file_qa_api_key", type="password"
-            )
-            "[Get an Anthropic API key](https://console.anthropic.com/)"
+        # with st.sidebar:
+        #     self.anthropi_api_key = st.text_input(
+        #         "Anthropic API Key", key="file_qa_api_key", type="password"
+        #     )
+        #     "[Get an Anthropic API key](https://console.anthropic.com/)"
 
         st.sidebar.title("Tools")
         selected_option = st.sidebar.radio(
@@ -99,7 +99,7 @@ class PredictaApp:
                 "Data Analysis",
                 "Feature Importance Analyzer",
                 "Best Parameter Selector",
-                "Chat With Predicta",
+                # "Chat With Predicta",
                 "PredictaCodeEditor",
                 "Select ML Models",
                 "Clear Modified DataSet",
@@ -115,8 +115,8 @@ class PredictaApp:
             self.handle_detect_outlier()
         elif selected_option == 'Encoder':
             self.encode_data()
-        elif selected_option == "Chat With Predicta":
-            self.handle_chat_with_predicta()
+        # elif selected_option == "Chat With Predicta":
+        #     self.handle_chat_with_predicta()
         elif selected_option == "PredictaCodeEditor":
             self.code_editor()
         elif selected_option == "Select ML Models":

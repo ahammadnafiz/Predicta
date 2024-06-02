@@ -166,8 +166,8 @@ class FeatureImportanceAnalyzer:
         option = st.sidebar.selectbox("Select a Model for Feature Importance Analysis", [
             "Linear Regression Importance",
             "Random Forest Regression Feature Importance",
-            "Random Forest",
-            "Gradient Boosting",
+            "Random Forest Classifier Importance",
+            "Gradient Boosting Classifier Importance",
             "Chi-Square Test Feature Selection",
             "Univariate MSE Feature Selection"
         ])
@@ -187,7 +187,7 @@ class FeatureImportanceAnalyzer:
                 y = self.data[target_column]
                 self.random_forest_regression_importance(X, y)
 
-        elif option == "Random Forest":
+        elif option == "Random Forest Classifier Importance":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Feature Importance</h2>", unsafe_allow_html=True)
 
             if st.button("Analyze"):
@@ -195,7 +195,7 @@ class FeatureImportanceAnalyzer:
                 y = self.data[target_column]
                 self.random_forest_importance(X, y)
 
-        elif option == "Gradient Boosting":
+        elif option == "Gradient Boosting Classifier Importance":
             st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Feature Importance</h2>", unsafe_allow_html=True)
 
             if st.button("Analyze"):
