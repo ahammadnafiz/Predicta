@@ -132,7 +132,7 @@ def main():
         st.session_state["messages"] = []
     
     st.sidebar.markdown("---")
-    contributor_info()
+    # contributor_info()
     
     if not groq_api_key:
         st.info('Please add your api key first')

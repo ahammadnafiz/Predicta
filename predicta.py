@@ -132,7 +132,7 @@ class PredictaApp:
 
         st.sidebar.divider()
 
-        self.contributor_info()
+        # self.contributor_info()
 
         st.sidebar.markdown("---")
         self.handle_about()

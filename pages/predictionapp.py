@@ -98,7 +98,7 @@ class PredictionApp:
         
         st.sidebar.divider()
         
-        self.contributor_info()
+        # self.contributor_info()
 
         if model_file and dataset_file:
             self.load_model(model_file)
