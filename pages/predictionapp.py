@@ -96,7 +96,7 @@ class PredictionApp:
 
         dataset_file = st.file_uploader("Upload Preprocessed Dataset (CSV)", type=["csv"])
         
-        st.sidebar.divider()
+        # st.sidebar.divider()
         
         # self.contributor_info()
 

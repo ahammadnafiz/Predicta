@@ -131,7 +131,7 @@ def main():
     if st.sidebar.button("Clear History"):
         st.session_state["messages"] = []
     
-    st.sidebar.markdown("---")
+    # st.sidebar.markdown("---")
     # contributor_info()
     
     if not groq_api_key:
