@@ -96,9 +96,9 @@ class PredictionApp:
 
         dataset_file = st.file_uploader("Upload Preprocessed Dataset (CSV)", type=["csv"])
         
-        st.sidebar.divider()
+        # st.sidebar.divider()
         
-        self.contributor_info()
+        # self.contributor_info()
 
         if model_file and dataset_file:
             self.load_model(model_file)
