@@ -164,6 +164,7 @@ class PredictaApp:
         st.sidebar.info("For any assistance or inquiries, please contact us at ahammadnafiz@outlook.com")
 
     def overview_methods(self):
+        """Display DateSet information."""
         if self.df is not None:
             options = overview.DataOverview(self.df)
             self.df = options.data_overview()
