@@ -46,7 +46,7 @@ class ChatPredicta:
         return question
 
     def get_user_message(self, question):
-        csv_data = self.df.sample(100).to_csv(index=False)
+        csv_data = self.df.sample(50).to_csv(index=False)
         csv_file = io.StringIO(csv_data)
         final_csv = csv_file.read()
         
