@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
 import streamlit as st
+import inspect
 
 
 class DataAnalyzer:
@@ -36,14 +37,42 @@ class DataAnalyzer:
         
         return data
 
+    def _generate_code(self, func_name, *args, **kwargs):
+        """Generate code for the given function with its arguments."""
+        func = getattr(self, func_name)
+        source = inspect.getsource(func)
+        
+        # Remove the decorator and function definition
+        code_lines = source.split('\n')[1:]
+        code = '\n'.join(code_lines)
+        
+        # Replace self with the class name
+        code = code.replace('self.', 'DataAnalyzer.')
+        
+        # Add function call with actual arguments
+        arg_strings = [repr(arg) for arg in args]
+        kwarg_strings = [f"{k}={repr(v)}" for k, v in kwargs.items()]
+        all_args = arg_strings + kwarg_strings
+        func_call = f"DataAnalyzer.{func_name}(data, {', '.join(all_args)})"
+        
+        return f"import pandas as pd\nimport plotly.express as px\n\ndata = pd.read_csv('your_data.csv')  # Replace with your data loading method\n\n{code}\n\n{func_call}"
+
+    def _display_code(self, func_name, *args, **kwargs):
+        """Display the code for the given function."""
+        code = self._generate_code(func_name, *args, **kwargs)
+        if st.button("See Code"):
+            st.code(code, language='python')
+
     def _line_plot(self, x, y_list):
         """Creates a line plot for multiple y-axis variables against a single x-axis variable. """
+        
         # Use Plotly Express to create the line plot
         fig = px.line(self.data, x=x, y=y_list, markers=True)
 
         # Update layout and display the plot using Streamlit
         fig.update_layout(title=f'Line Plot: {", ".join(y_list)} vs {x}', xaxis_title=x, yaxis_title="Value")
         st.plotly_chart(fig)
+        self._display_code('_line_plot', x, y_list)
     
     def _boxplot_with_outliers(self, x, y, output_path=None):
         """
@@ -60,6 +89,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
+        self._display_code('_boxplot_with_outliers', x, y)
    
     def _pie_chart(self, category_columns, target_column):
         """
@@ -92,7 +122,8 @@ class DataAnalyzer:
                                   marker=dict(line=dict(color='white', width=1)))
 
                 # Display the pie chart using Streamlit's st.plotly_chart
-                st.plotly_chart(fig)  
+                st.plotly_chart(fig)
+        self._display_code('_pie_chart', category_columns, target_column)
                 
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
@@ -106,6 +137,7 @@ class DataAnalyzer:
             st.write('Pairwise scatter plot matrix saved at:', output)
         
         st.plotly_chart(scatter_matrix_fig)
+        self._display_code('_pairwise_scatter_matrix', variables)
     
     def _categorical_heatmap(self, x, y, output_path=None):
         """
@@ -128,6 +160,7 @@ class DataAnalyzer:
             st.write('Heatmap saved at:', output)
         
         st.plotly_chart(heatmap_fig)
+        self._display_code('_categorical_heatmap', x, y)
 
     def _discrete_var_barplot(self, x, y, output_path=None):
         """
@@ -142,6 +175,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
     
         st.plotly_chart(fig, use_container_width=True)
+        self._display_code('_discrete_var_barplot', x, y)
 
     def _discrete_var_countplot(self, x, output_path=None):
         """
@@ -169,6 +203,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
+        self._display_code('_discrete_var_countplot', x)
 
     def _discrete_var_boxplot(self, x, y, output_path=None):
         """
@@ -189,6 +224,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
+        self._display_code('_discrete_var_boxplot', x, y)
 
     def _continuous_var_distplot(self, x, output_path=None, bins=None):
         """
@@ -219,6 +255,7 @@ class DataAnalyzer:
             
             # Show the Plotly figure using Streamlit
             st.plotly_chart(fig)
+            self._display_code('_continuous_var_distplot', x, bins)
 
         except Exception as e:
             st.error(f"An error occurred while generating the distribution plot: {e}")
@@ -242,6 +279,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
+        self._display_code('_scatter_plot', x, y)
 
     def _scatter_3d_plot(self, x, y, z, output_path=None):
         """
@@ -291,6 +329,7 @@ class DataAnalyzer:
 
         # Display the 3D scatter plot using Streamlit
         st.plotly_chart(fig)
+        self._display_code('_scatter_3d_plot', x, y, z)
 
     def _correlation_plot(self, output_path=None):
         """
@@ -325,6 +364,7 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
 
         st.plotly_chart(fig)
+        self._display_code('_correlation_plot')
 
     def _interactive_data_table(self):
         """Displays an interactive data table with Excel-like functionality."""
@@ -431,6 +471,7 @@ class DataAnalyzer:
         
         # Display the plot
         st.plotly_chart(time_series_fig)
+        self._display_code('_time_series_plot', time_column, value_column, aggregation_function, time_interval, smoothing_technique)
         
         # Save plot as HTML if output path is provided
         if output_path:
@@ -454,6 +495,7 @@ class DataAnalyzer:
         fig.update_layout(title="Distribution Comparison Plot", showlegend=False)
         
         st.plotly_chart(fig)
+        self._display_code('_distribution_comparison_plot', columns)
         if output_path:
             dist_comp_plot_path = os.path.join(output_path, 'distribution_comparison_plot.html')
             fig.write_html(dist_comp_plot_path)
