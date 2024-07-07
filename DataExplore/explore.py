@@ -48,7 +48,6 @@ class DataAnalyzer:
         # Update layout and display the plot using Streamlit
         fig.update_layout(title=f'Line Plot: {", ".join(y_list)} vs {x}', xaxis_title=x, yaxis_title="Value")
         st.plotly_chart(fig)
-        self.view_code._display_code('_line_plot', x, y_list)
     
     def _boxplot_with_outliers(self, x, y, output_path=None):
         """
@@ -65,7 +64,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-        self.view_code._display_code('_boxplot_with_outliers', x, y)
    
     def _pie_chart(self, category_columns, target_column):
         """
@@ -99,7 +97,6 @@ class DataAnalyzer:
 
                 # Display the pie chart using Streamlit's st.plotly_chart
                 st.plotly_chart(fig)
-        self.view_code._display_code('_pie_chart', category_columns, target_column)
                 
     def _pairwise_scatter_matrix(self, variables, output_path=None):
         """
@@ -113,7 +110,6 @@ class DataAnalyzer:
             st.write('Pairwise scatter plot matrix saved at:', output)
         
         st.plotly_chart(scatter_matrix_fig)
-        self.view_code._display_code('_pairwise_scatter_matrix', variables)
     
     def _categorical_heatmap(self, x, y, output_path=None):
         """
@@ -136,7 +132,6 @@ class DataAnalyzer:
             st.write('Heatmap saved at:', output)
         
         st.plotly_chart(heatmap_fig)
-        self.view_code._display_code('_categorical_heatmap', x, y)
 
     def _discrete_var_barplot(self, x, y, output_path=None):
         """
@@ -151,7 +146,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
     
         st.plotly_chart(fig, use_container_width=True)
-        self.view_code._display_code('_discrete_var_barplot', x, y)
 
     def _discrete_var_countplot(self, x, output_path=None):
         """
@@ -179,7 +173,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-        self.view_code._display_code('_discrete_var_countplot', x)
 
     def _discrete_var_boxplot(self, x, y, output_path=None):
         """
@@ -200,7 +193,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-        self.view_code._display_code('_discrete_var_boxplot', x, y)
 
     def _continuous_var_distplot(self, x, output_path=None, bins=None):
         """
@@ -231,7 +223,6 @@ class DataAnalyzer:
             
             # Show the Plotly figure using Streamlit
             st.plotly_chart(fig)
-            self.view_code._display_code('_continuous_var_distplot', x, bins)
 
         except Exception as e:
             st.error(f"An error occurred while generating the distribution plot: {e}")
@@ -255,7 +246,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
         
         st.plotly_chart(fig)
-        self.view_code._display_code('_scatter_plot', x, y)
 
     def _scatter_3d_plot(self, x, y, z, output_path=None):
         """
@@ -305,7 +295,6 @@ class DataAnalyzer:
 
         # Display the 3D scatter plot using Streamlit
         st.plotly_chart(fig)
-        self.view_code._display_code('_scatter_3d_plot', x, y, z)
 
     def _correlation_plot(self, output_path=None):
         """
@@ -340,7 +329,6 @@ class DataAnalyzer:
             st.write('Figure saved at:', output)
 
         st.plotly_chart(fig)
-        self.view_code._display_code('_correlation_plot')
 
     def _interactive_data_table(self):
         """Displays an interactive data table with Excel-like functionality."""
@@ -447,7 +435,6 @@ class DataAnalyzer:
         
         # Display the plot
         st.plotly_chart(time_series_fig)
-        self.view_code._display_code('_time_series_plot', time_column, value_column, aggregation_function, time_interval, smoothing_technique)
         
         # Save plot as HTML if output path is provided
         if output_path:
@@ -471,7 +458,6 @@ class DataAnalyzer:
         fig.update_layout(title="Distribution Comparison Plot", showlegend=False)
         
         st.plotly_chart(fig)
-        self.view_code._display_code('_distribution_comparison_plot', columns)
         if output_path:
             dist_comp_plot_path = os.path.join(output_path, 'distribution_comparison_plot.html')
             fig.write_html(dist_comp_plot_path)
@@ -513,6 +499,8 @@ class DataAnalyzer:
             # Ensure at least one y variable is selected
             if y_list:
                 self._line_plot(x, y_list)
+                if st.checkbox('Show Code'):
+                    self.view_code._display_code('_line_plot')
             else:
                 st.warning("Please select at least one Y axis variable.")
         elif analysis_option == "Pie Charts":
@@ -524,6 +512,8 @@ class DataAnalyzer:
             if category_columns and target_column:
                 # Display distribution by category for the selected columns
                 self._pie_chart(category_columns, target_column)
+                if st.checkbox('Show Code'):
+                    self.view_code._display_code('_pie_chart')
             else:
                 st.warning("Please select at least one categorical column and one target column.")
 
@@ -532,49 +522,68 @@ class DataAnalyzer:
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._discrete_var_barplot(x, y)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_discrete_var_barplot')
         elif analysis_option == "Discrete Variable Countplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Countplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             self._discrete_var_countplot(x)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_discrete_var_countplot')
         elif analysis_option == "Discrete Variable Boxplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Boxplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._discrete_var_boxplot(x, y)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_discrete_var_boxplot')
         elif analysis_option == "Continuous Variable Distplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Continuous Variable Distplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             bins = st.number_input("Enter number of bins", min_value=1, max_value=100, value=10)
             self._continuous_var_distplot(x, bins=bins)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_continuous_var_distplot')
         elif analysis_option == "Scatter Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Scatter Plot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._scatter_plot(x, y)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_scatter_plot')
         elif analysis_option == "3D Scatter Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>3D Scatter Plot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             z = st.selectbox("Select Z axis", self.data.columns)
             self._scatter_3d_plot(x, y, z)
-
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_scatter_3d_plot')
         elif analysis_option == "Box Plot with Outliers":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Box Plot with Outliers</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._boxplot_with_outliers(x, y)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_boxplot_with_outliers')
         elif analysis_option == "Pairwise Scatter Plot Matrix":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Pairwise Scatter Plot Matrix</h1>", unsafe_allow_html=True)
             variables = st.multiselect("Select Variables", self.data.columns)
             self._pairwise_scatter_matrix(variables)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_pairwise_scatter_matrix')
         elif analysis_option == "Categorical Heatmap":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Categorical Heatmap</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
             y = st.selectbox("Select Y axis", self.data.columns)
             self._categorical_heatmap(x, y)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_categorical_heatmap')
         elif analysis_option == "Correlation Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Correlation Plot</h1>", unsafe_allow_html=True)
             self._correlation_plot()
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_correlation_plot')
         elif analysis_option == "Time Series Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Time Series Plot</h1>", unsafe_allow_html=True)
             time_column = st.selectbox("Select Time Column", self.data.columns)
@@ -582,10 +591,14 @@ class DataAnalyzer:
             aggregation_function = st.selectbox("Select Aggregation Function", ["mean", "sum", "count", "min", "max"])
             time_interval = st.selectbox("Select Time Interval", ["D", "W", "M", "Q", "Y"])
             self._time_series_plot(time_column, value_column, aggregation_function, time_interval)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_time_series_plot')
         elif analysis_option == "Distribution Comparison Plot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Distribution Comparison Plot</h1>", unsafe_allow_html=True)
             columns = st.multiselect("Select Columns for Comparison", self.data.columns)
             self._distribution_comparison_plot(columns)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_distribution_comparison_plot')
         elif analysis_option == "Interactive Data Table":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Interactive Data Table</h1>", unsafe_allow_html=True)
             self._interactive_data_table()
