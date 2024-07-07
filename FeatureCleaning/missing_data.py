@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 import streamlit as st
+from show_code import ShowCode
 
 
 class DataImputer:
@@ -10,6 +11,8 @@ class DataImputer:
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Input data must be a pandas DataFrame.")
         self.data = data
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(DataImputer)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
@@ -170,19 +173,14 @@ class DataImputer:
             raise
 
     def imputer(self):
-        
-        st.markdown(
-    "<h1 style='text-align: center; font-size: 30px;'>Impute Missing Values</h1>", 
-    unsafe_allow_html=True
-)
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Impute Missing Values</h1>", unsafe_allow_html=True)
         st.markdown("---")
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h1>", unsafe_allow_html=True)
         st.dataframe(self.data, width=800)
 
-        
-        option = st.sidebar.selectbox("Select an Imputation Method", [
-            "Drop Columns",
+        options = [
             "Check Missing Values",
+            "Drop Columns",
             "Drop Missing Values",
             "Add Variable to Denote NA",
             "Impute NA with Arbitrary Value",
@@ -192,107 +190,105 @@ class DataImputer:
             "Impute NA with Average",
             "Impute NA with End of Distribution",
             "Impute NA with Random Sampling"
-        ])
+        ]
+
+        option = st.sidebar.selectbox("Select an Imputation Method", options)
+
+        # Initialize session state for each option
+        for opt in options:
+            if f'{opt}_clicked' not in st.session_state:
+                st.session_state[f'{opt}_clicked'] = False
+            if f'{opt}_show_code' not in st.session_state:
+                st.session_state[f'{opt}_show_code'] = False
 
         if option == "Check Missing Values":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Check Missing Values</h1>", unsafe_allow_html=True)
-            if st.button("Check"):
-                self.check_missing()
-                st.write(self.check_missing())
-                
+            self._handle_check_missing_values()
         elif option == "Drop Columns":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Columns</h1>", unsafe_allow_html=True)
-            columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
-            if st.button("Drop Columns"):
-                try:
-                    self.data = self._drop_columns(columns_to_drop)
-                    st.dataframe(self.data)
-                except Exception as e:
-                    st.error(f"An error occurred while dropping columns: {str(e)}")
-
+            self._handle_drop_columns()
         elif option == "Drop Missing Values":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Missing Values</h1>", unsafe_allow_html=True)
-            axis = st.radio("Drop rows or columns?", ["Rows", "Columns"])
-            axis = 0 if axis == "Rows" else 1
-            if st.button("Drop"):
-                self.drop_missing(axis=axis)
-                if self.data is not None:
-                    st.dataframe(self.data)
-                else:
-                    st.warning("No missing values found in the data.")
-
+            self._handle_drop_missing_values()
         elif option == "Add Variable to Denote NA":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Add Variable to Denote NA</h1>", unsafe_allow_html=True)
-            selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
-            if st.button("Add"):
-                if selected_columns:
-                    data_add_var = self.add_var_denote_NA(NA_col=selected_columns)
-                    st.write(data_add_var)
-                else:
-                    st.warning("Please select at least one column to impute")
-
+            self._handle_add_var_denote_na()
         elif option == "Impute NA with Arbitrary Value":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with Arbitrary Value</h1>", unsafe_allow_html=True)
-            impute_value = st.text_input("Enter Arbitrary Value")
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            if st.button("Impute Arbitrary Value"):
-                self.impute_NA_with_arbitrary(impute_value=float(impute_value), NA_col=na_cols)
-                st.success(f"{na_cols} columns imputed successfully")
-
+            self._handle_impute_arbitrary()
         elif option == "Impute NA with Interpolation":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with Interpolation</h1>", unsafe_allow_html=True)
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            interp_method = st.selectbox("Interpolation Method", ['linear', 'quadratic', 'cubic'])
-            interp_limit = st.text_input("Limit", None)
-            interp_limit_direction = st.selectbox("Limit Direction", ['forward', 'backward', 'both'])
-            if st.button("Impute Interpolation"):
-                data_interp = self.impute_NA_with_interpolation(method=interp_method, limit=interp_limit, limit_direction=interp_limit_direction, NA_col=na_cols)
-                st.write(data_interp)
-
+            self._handle_impute_interpolation()
         elif option == "Impute NA with KNN":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with KNN</h1>", unsafe_allow_html=True)
-            n_neighbors = st.number_input("Number of Neighbors", min_value=1, value=5)
-            selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
-            if st.button("Impute KNN"):
-                if selected_columns:  # Check if at least one column is selected
-                    data_knn = self.impute_NA_with_knn(NA_col=selected_columns, n_neighbors=n_neighbors)
-                    st.write(data_knn)
-                else:
-                    st.warning("Please select at least one column to impute")
-
+            self._handle_impute_knn()
         elif option == "Impute NA with SimpleImputer":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with SimpleImputer</h1>", unsafe_allow_html=True)
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            impute_strategy = st.selectbox("Imputation Strategy", ["mean", "median", "most_frequent", "constant"])
-
-            if st.button("Impute SimpleImputer"):
-                try:
-                    data_simple_imputer = self.impute_NA_with_simple_imputer(NA_col=na_cols, strategy=impute_strategy)
-                    st.write(data_simple_imputer)
-                except Exception as e:
-                    st.error(f"An error occurred while imputing NA with SimpleImputer: {str(e)}")
-
+            self._handle_impute_simple_imputer()
         elif option == "Impute NA with Average":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with Average</h1>", unsafe_allow_html=True)
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            strategy = st.selectbox("Imputation Strategy", ['mean', 'median', 'mode'])
-            if st.button("Impute Average"):
-                data_avg = self.impute_NA_with_avg(strategy=strategy, NA_col=na_cols)
-                st.write(data_avg)
-
+            self._handle_impute_average()
         elif option == "Impute NA with End of Distribution":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with End of Distribution</h1>", unsafe_allow_html=True)
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            if st.button("Impute End of Distribution"):
-                data_end_dist = self.impute_NA_with_end_of_distribution(NA_col=na_cols)
-                st.write(data_end_dist)
-
+            self._handle_impute_end_distribution()
         elif option == "Impute NA with Random Sampling":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Impute NA with Random Sampling</h1>", unsafe_allow_html=True)
-            na_cols = st.multiselect("Select Columns", self.data.columns)
-            random_state = st.number_input("Random State", min_value=0, value=0)
-            if st.button("Impute Random"):
-                data_random = self.impute_NA_with_random(NA_col=na_cols, random_state=random_state)
-                st.write(data_random)
-        
+            self._handle_impute_random()
+
         return self.data
+
+    def _handle_option(self, option, function, **kwargs):
+        st.markdown(f"<h1 style='text-align: center; font-size: 25px;'>{option}</h1>", unsafe_allow_html=True)
+        
+        if st.button("Execute"):
+            st.session_state[f'{option}_clicked'] = True
+
+        if st.session_state[f'{option}_clicked']:
+            result = function(**kwargs)
+            st.write(result)
+            
+            st.session_state[f'{option}_show_code'] = st.checkbox('Show Code', value=st.session_state[f'{option}_show_code'])
+            
+            if st.session_state[f'{option}_show_code']:
+                self.view_code._display_code(function.__name__)
+
+    def _handle_check_missing_values(self):
+        self._handle_option("Check Missing Values", self.check_missing)
+
+    def _handle_drop_columns(self):
+        columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
+        self._handle_option("Drop Columns", self._drop_columns, columns_to_drop=columns_to_drop)
+
+    def _handle_drop_missing_values(self):
+        axis = st.radio("Drop rows or columns?", ["Rows", "Columns"])
+        axis = 0 if axis == "Rows" else 1
+        self._handle_option("Drop Missing Values", self.drop_missing, axis=axis)
+
+    def _handle_add_var_denote_na(self):
+        selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
+        self._handle_option("Add Variable to Denote NA", self.add_var_denote_NA, NA_col=selected_columns)
+
+    def _handle_impute_arbitrary(self):
+        impute_value = st.text_input("Enter Arbitrary Value")
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        self._handle_option("Impute NA with Arbitrary Value", self.impute_NA_with_arbitrary, impute_value=float(impute_value), NA_col=na_cols)
+
+    def _handle_impute_interpolation(self):
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        interp_method = st.selectbox("Interpolation Method", ['linear', 'quadratic', 'cubic'])
+        interp_limit = st.text_input("Limit", None)
+        interp_limit_direction = st.selectbox("Limit Direction", ['forward', 'backward', 'both'])
+        self._handle_option("Impute NA with Interpolation", self.impute_NA_with_interpolation, method=interp_method, limit=interp_limit, limit_direction=interp_limit_direction, NA_col=na_cols)
+
+    def _handle_impute_knn(self):
+        n_neighbors = st.number_input("Number of Neighbors", min_value=1, value=5)
+        selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
+        self._handle_option("Impute NA with KNN", self.impute_NA_with_knn, NA_col=selected_columns, n_neighbors=n_neighbors)
+
+    def _handle_impute_simple_imputer(self):
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        impute_strategy = st.selectbox("Imputation Strategy", ["mean", "median", "most_frequent", "constant"])
+        self._handle_option("Impute NA with SimpleImputer", self.impute_NA_with_simple_imputer, NA_col=na_cols, strategy=impute_strategy)
+
+    def _handle_impute_average(self):
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        strategy = st.selectbox("Imputation Strategy", ['mean', 'median', 'mode'])
+        self._handle_option("Impute NA with Average", self.impute_NA_with_avg, strategy=strategy, NA_col=na_cols)
+
+    def _handle_impute_end_distribution(self):
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        self._handle_option("Impute NA with End of Distribution", self.impute_NA_with_end_of_distribution, NA_col=na_cols)
+
+    def _handle_impute_random(self):
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        random_state = st.number_input("Random State", min_value=0, value=0)
+        self._handle_option("Impute NA with Random Sampling", self.impute_NA_with_random, NA_col=na_cols, random_state=random_state)

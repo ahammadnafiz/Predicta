@@ -1,11 +1,14 @@
 import pandas as pd
 import streamlit as st
+from show_code import ShowCode
 
 class DataOverview:
     def __init__(self, data):
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Input data must be a pandas DataFrame")
         self.data = data
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(DataOverview)
     
     def _display_info(self):
         """
@@ -20,10 +23,10 @@ class DataOverview:
         summary_info = self.data.dtypes.reset_index()
         summary_info.columns = ['Column', 'Dtype']
         summary_info['Non-Null Count'] = self.data.count().values
-        
         # Create DataFrame from the summary information
         summary = pd.DataFrame(summary_info)
         st.write(summary)
+        
     
     def _describe(self):
         """Generates descriptive statistics for numerical columns."""
@@ -45,6 +48,10 @@ class DataOverview:
                                                                         ])
         if overview_option == "Dataset Information":
             self._display_info()
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_display_info')
         elif overview_option == "Describe":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Descriptive Statistics</h1>", unsafe_allow_html=True)
             st.dataframe(self._describe(), width=800)
+            if st.checkbox('Show Code'):
+                self.view_code._display_code('_describe')
