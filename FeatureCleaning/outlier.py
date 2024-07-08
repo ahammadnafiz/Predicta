@@ -3,11 +3,14 @@ import numpy as np
 import logging
 import streamlit as st
 import plotly.graph_objects as go
+from show_code import ShowCode
 
 
 class OutlierDetector:
     def __init__(self, data):
         self.data = data
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(OutlierDetector)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
@@ -143,81 +146,80 @@ class OutlierDetector:
 
 
     def outlier_detect(self):
-        
-        st.markdown(
-            "<h1 style='text-align: center; font-size: 30px;'>Detect and Impute Outliers</h1>", 
-            unsafe_allow_html=True
-        )
-
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Detect and Impute Outliers</h1>", unsafe_allow_html=True)
         st.markdown("---")
-        
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h1>", unsafe_allow_html=True)
         st.dataframe(self.data, width=800)
 
-        option = st.sidebar.selectbox("Select an Outlier Detection/Imputation Method", [
+        options = [
             "Detect Outliers using IQR",
             "Detect Outliers using Mean and Standard Deviation",
             "Detect Outliers using Median Absolute Deviation (MAD)",
             "Windsorize Outliers",
             "Drop Outliers"
-        ])
+        ]
+
+        option = st.sidebar.selectbox("Select an Outlier Detection/Imputation Method", options)
+
+        # Initialize session state for each option
+        for opt in options:
+            if f'{opt}_clicked' not in st.session_state:
+                st.session_state[f'{opt}_clicked'] = False
+            if f'{opt}_show_code' not in st.session_state:
+                st.session_state[f'{opt}_show_code'] = False
 
         if option == "Detect Outliers using IQR":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Detect Outliers using IQR</h1>", unsafe_allow_html=True)
-            threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
-            col = st.selectbox("Select a column", options=self.data.columns)
-            if st.button("Detect Outliers"):
-                outlier_index, para = self.outlier_detect_IQR(data=self.data, col=col, threshold=threshold)
-                
-                st.write("Outlier indices:", outlier_index)
-                st.write("Parameters:", para)
-
+            self._handle_detect_iqr()
         elif option == "Detect Outliers using Mean and Standard Deviation":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Detect Outliers using Mean and Standard Deviation</h1>", unsafe_allow_html=True)
-            threshold = st.number_input("Threshold", min_value=0.1, value=3.0)
-            col = st.selectbox("Select a column", options=self.data.columns)
-            if st.button("Detect Outliers"):
-                outlier_index, para = self.outlier_detect_mean_std(data=self.data, col=col, threshold=threshold)
-               
-                st.write("Outlier indices:", outlier_index)
-                st.write("Parameters:", para)
-
+            self._handle_detect_mean_std()
         elif option == "Detect Outliers using Median Absolute Deviation (MAD)":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Detect Outliers using Median Absolute Deviation (MAD)</h1>", unsafe_allow_html=True)
-            threshold = st.number_input("Threshold", min_value=0.1, value=3.5)
-            col = st.selectbox("Select a column", options=self.data.columns)
-            if st.button("Detect Outliers"):
-                outlier_index = self.outlier_detect_MAD(data=self.data, col=col, threshold=threshold) 
-                st.write("Outlier indices:", outlier_index)
-
+            self._handle_detect_mad()
         elif option == "Windsorize Outliers":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Windsorize Outliers</h1>", unsafe_allow_html=True)
-            threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
-            col = st.selectbox("Select a column", options=self.data.columns)
-            outlier_index_value, para = self.outlier_detect_IQR(data=self.data, col=col, threshold=threshold)
-            strategy = st.selectbox("Windsorization Strategy", ['both', 'top', 'bottom'])
-
-            if st.button("Windsorize"):
-                data_windsorized = self.windsorization(data=self.data, col=col, para=para, strategy=strategy)
-                st.write(data_windsorized)
-
-                # Plotting the data after Windsorization
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=data_windsorized.index, y=data_windsorized[col],
-                                        mode='markers',
-                                        name='Data'))
-                fig.update_layout(title='Data after Windsorization',
-                                xaxis_title='Index',
-                                yaxis_title=col)
-                st.plotly_chart(fig)
-        
+            self._handle_windsorize()
         elif option == "Drop Outliers":
-            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Drop Outliers</h1>", unsafe_allow_html=True)
-            threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
-            col = st.selectbox("Select a column", options=self.data.columns)
-            outlier_index_value, para = self.outlier_detect_IQR(data=self.data, col=col, threshold=threshold)
-            if st.button("Drop Outliers"):
-                data_dropped = self.drop_outlier(outlier_index=outlier_index_value)
-                st.write(data_dropped)
+            self._handle_drop_outliers()
 
         return self.data
+
+    def _handle_option(self, option, function, **kwargs):
+        st.markdown(f"<h1 style='text-align: center; font-size: 25px;'>{option}</h1>", unsafe_allow_html=True)
+        
+        if st.button("Execute"):
+            st.session_state[f'{option}_clicked'] = True
+
+        if st.session_state[f'{option}_clicked']:
+            result = function(**kwargs)
+            st.write(result)
+            
+            st.session_state[f'{option}_show_code'] = st.checkbox('Show Code', value=st.session_state[f'{option}_show_code'])
+            
+            if st.session_state[f'{option}_show_code']:
+                self.view_code._display_code(function.__name__)
+
+    def _handle_detect_iqr(self):
+        threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
+        col = st.selectbox("Select a column", options=self.data.columns)
+        self._handle_option("Detect Outliers using IQR", self.outlier_detect_IQR, data=self.data, col=col, threshold=threshold)
+
+    def _handle_detect_mean_std(self):
+        threshold = st.number_input("Threshold", min_value=0.1, value=3.0)
+        col = st.selectbox("Select a column", options=self.data.columns)
+        self._handle_option("Detect Outliers using Mean and Standard Deviation", self.outlier_detect_mean_std, data=self.data, col=col, threshold=threshold)
+
+    def _handle_detect_mad(self):
+        threshold = st.number_input("Threshold", min_value=0.1, value=3.5)
+        col = st.selectbox("Select a column", options=self.data.columns)
+        self._handle_option("Detect Outliers using Median Absolute Deviation (MAD)", self.outlier_detect_MAD, data=self.data, col=col, threshold=threshold)
+
+    def _handle_windsorize(self):
+        threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
+        col = st.selectbox("Select a column", options=self.data.columns)
+        outlier_index_value, para = self.outlier_detect_IQR(data=self.data, col=col, threshold=threshold)
+        strategy = st.selectbox("Windsorization Strategy", ['both', 'top', 'bottom'])
+        self._handle_option("Windsorize Outliers", self.windsorization, data=self.data, col=col, para=para, strategy=strategy)
+
+    def _handle_drop_outliers(self):
+        threshold = st.number_input("Threshold", min_value=0.1, value=1.5)
+        col = st.selectbox("Select a column", options=self.data.columns)
+        outlier_index_value, para = self.outlier_detect_IQR(data=self.data, col=col, threshold=threshold)
+        self._handle_option("Drop Outliers", self.drop_outlier, outlier_index=outlier_index_value)

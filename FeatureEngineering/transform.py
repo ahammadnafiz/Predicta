@@ -3,11 +3,16 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, Normalizer, Poly
 import streamlit as st
 import numpy as np
 import plotly.express as px
+from show_code import ShowCode
 
 class DataTransformer:
     def __init__(self, data):
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Input data must be a pandas DataFrame.")
         self.data = data
-    
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(DataTransformer)
+
     def standard_scaling(self, col):
         scaler = StandardScaler()
         self.data[col + '_scaled'] = scaler.fit_transform(self.data[[col]])
@@ -60,15 +65,12 @@ class DataTransformer:
         st.plotly_chart(fig)
 
     def transformer(self):
-        st.markdown(
-            "<h1 style='text-align: center; font-size: 30px;'>Transform Data</h1>", 
-            unsafe_allow_html=True
-        )
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Transform Data</h1>", unsafe_allow_html=True)
         st.markdown("---")
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h1>", unsafe_allow_html=True)
         st.dataframe(self.data, width=800)
 
-        option = st.sidebar.selectbox("Select a Transformation Method", [
+        options = [
             "Standard Scaling",
             "Min-Max Scaling",
             "Normalization",
@@ -78,50 +80,68 @@ class DataTransformer:
             "Yeo-Johnson Transformation",
             "Robust Scaling",
             "Quantile Transformation"
-        ])
+        ]
+
+        option = st.sidebar.selectbox("Select a Transformation Method", options)
 
         column_to_transform = st.sidebar.selectbox("Select column for Transformation", self.data.columns)
         
         if option == "Polynomial Features":
             degree = st.sidebar.slider("Select degree for Polynomial Features", 2, 5, 2)
+        else:
+            degree = None
         
         if option == "Quantile Transformation":
             output_distribution = st.sidebar.selectbox("Select output distribution for Quantile Transformation", ["uniform", "normal"])
+        else:
+            output_distribution = None
 
         st.markdown(f"### Original Data: {column_to_transform}")
         self.plot_histogram(column_to_transform, f"Original Data - {column_to_transform}")
 
+        # Initialize session state
+        if 'transformed_data' not in st.session_state:
+            st.session_state.transformed_data = None
+        if 'show_code' not in st.session_state:
+            st.session_state.show_code = False
+
         if st.button("Transform"):
             if pd.api.types.is_numeric_dtype(self.data[column_to_transform]):
-                if option == "Standard Scaling":
-                    self.data = self.standard_scaling(column_to_transform)
-                    transformed_col = column_to_transform + '_scaled'
-                elif option == "Min-Max Scaling":
-                    self.data = self.min_max_scaling(column_to_transform)
-                    transformed_col = column_to_transform + '_minmax_scaled'
-                elif option == "Normalization":
-                    self.data = self.normalization(column_to_transform)
-                    transformed_col = column_to_transform + '_normalized'
-                elif option == "Log Transformation":
-                    self.data = self.log_transformation(column_to_transform)
-                    transformed_col = column_to_transform + '_log_transformed'
-                elif option == "Polynomial Features":
-                    self.data = self.polynomial_features(column_to_transform, degree)
-                    transformed_col = column_to_transform + '_poly_1'
-                elif option == "Box-Cox Transformation":
-                    self.data = self.box_cox_transformation(column_to_transform)
-                    transformed_col = column_to_transform + '_boxcox_transformed'
-                elif option == "Yeo-Johnson Transformation":
-                    self.data = self.yeo_johnson_transformation(column_to_transform)
-                    transformed_col = column_to_transform + '_yeojohnson_transformed'
-                elif option == "Robust Scaling":
-                    self.data = self.robust_scaling(column_to_transform)
-                    transformed_col = column_to_transform + '_robust_scaled'
-                elif option == "Quantile Transformation":
-                    self.data = self.quantile_transformation(column_to_transform, output_distribution)
-                    transformed_col = column_to_transform + '_quantile_transformed'
+                st.session_state.transformed_data = self._apply_transformation(option, column_to_transform, degree, output_distribution)
+            else:
+                st.warning(f"The selected column '{column_to_transform}' is not numeric. Transformation can only be applied to numeric columns.")
 
-                st.markdown(f"### Transformed Data: {transformed_col}")
-                self.plot_histogram(transformed_col, f"Transformed Data - {transformed_col}")
+        if st.session_state.transformed_data is not None:
+            st.markdown(f"### Transformed Data: {st.session_state.transformed_data.columns[-1]}")
+            self.plot_histogram(st.session_state.transformed_data.columns[-1], f"Transformed Data - {st.session_state.transformed_data.columns[-1]}")
+
+            st.session_state.show_code = st.checkbox('Show Code', value=st.session_state.show_code)
+            
+            if st.session_state.show_code:
+                self._display_code(option)
 
         return self.data
+
+    def _apply_transformation(self, option, column, degree=None, output_distribution=None):
+        if option == "Standard Scaling":
+            return self.standard_scaling(column)
+        elif option == "Min-Max Scaling":
+            return self.min_max_scaling(column)
+        elif option == "Normalization":
+            return self.normalization(column)
+        elif option == "Log Transformation":
+            return self.log_transformation(column)
+        elif option == "Polynomial Features":
+            return self.polynomial_features(column, degree)
+        elif option == "Box-Cox Transformation":
+            return self.box_cox_transformation(column)
+        elif option == "Yeo-Johnson Transformation":
+            return self.yeo_johnson_transformation(column)
+        elif option == "Robust Scaling":
+            return self.robust_scaling(column)
+        elif option == "Quantile Transformation":
+            return self.quantile_transformation(column, output_distribution)
+
+    def _display_code(self, option):
+        method_name = option.lower().replace('-', '_').replace(' ', '_')
+        self.view_code._display_code(method_name)
