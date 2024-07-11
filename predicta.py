@@ -69,7 +69,7 @@ class PredictaApp:
         if not os.path.exists(self.modified_df_path):
             uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
             if uploaded_file is not None:
-                self.df = self.read_csv_with_encoding(uploaded_file)
+                self.df = df = pd.read_csv(uploaded_file)
                 self.save_modified_df()
         else:
             st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
