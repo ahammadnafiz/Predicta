@@ -3,10 +3,13 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from show_code import ShowCode
 
 class BestParam:
     def __init__(self, data):
         self.data = data
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(BestParam)
     
     def grid_search(self, X_train, y_train, model, param_grid, scoring='accuracy', cv=5):
         grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring=scoring, cv=cv, n_jobs=-1)
@@ -78,37 +81,51 @@ class BestParam:
         target_column = st.sidebar.selectbox("Select Target Column", self.data.columns)
         feature_column = self.data.drop(columns=[target_column])
         
-        option = st.sidebar.selectbox("Select a Model for Parameter Tuning", [
-        "Linear Regression",
-        "Random Forest Regression",
-        "Random Forest Classifier",
-        "Gradient Boosting Classifier"
-        ])
+        options = [
+            "Linear Regression",
+            "Random Forest Regression",
+            "Random Forest Classifier",
+            "Gradient Boosting Classifier"
+        ]
         
-        if option == "Linear Regression":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
-            st.write("Configure parameters:")
-            
-            if st.button("Best Param"):
-                self.linear_regression(feature_column, self.data[target_column])
+        option = st.sidebar.selectbox("Select a Model for Parameter Tuning", options)
         
-        elif option == "Random Forest Regression":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
-            st.write("Configure parameters:")
-            
-            if st.button("Best Param"):
-                self.random_forest_regression(feature_column, self.data[target_column])
+        if 'tuned_model' not in st.session_state:
+            st.session_state.tuned_model = None
         
-        elif option == "Random Forest Classifier":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
-            st.write("Configure parameters:")
+        if 'selected_option' not in st.session_state:
+            st.session_state.selected_option = None
+
+        if 'show_code' not in st.session_state:
+            st.session_state.show_code = False
+
+        tune_button = st.button("Best Param")
+
+        if tune_button or (st.session_state.tuned_model is not None and option == st.session_state.selected_option):
+            if option == "Linear Regression":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
+                st.session_state.tuned_model = self.linear_regression(feature_column, self.data[target_column])
+            elif option == "Random Forest Regression":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning</h2>", unsafe_allow_html=True)
+                st.session_state.tuned_model = self.random_forest_regression(feature_column, self.data[target_column])
+            elif option == "Random Forest Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
+                st.session_state.tuned_model = self.random_forest_classifier(feature_column, self.data[target_column])
+            elif option == "Gradient Boosting Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
+                st.session_state.tuned_model = self.gradient_boosting_classifier(feature_column, self.data[target_column])
             
-            if st.button("Best Param"):
-                self.random_forest_classifier(feature_column, self.data[target_column])
-        
-        elif option == "Gradient Boosting Classifier":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning</h2>", unsafe_allow_html=True)
-            st.write("Configure parameters:")
+            st.session_state.selected_option = option
+
+        if st.session_state.tuned_model is not None:
+            st.session_state.show_code = st.checkbox('Show Code', value=st.session_state.show_code)
             
-            if st.button("Best Param"):
-                self.gradient_boosting_classifier(feature_column, self.data[target_column])
+            if st.session_state.show_code:
+                if st.session_state.selected_option == "Linear Regression":
+                    self.view_code._display_code('linear_regression')
+                elif st.session_state.selected_option == "Random Forest Regression":
+                    self.view_code._display_code('random_forest_regression')
+                elif st.session_state.selected_option == "Random Forest Classifier":
+                    self.view_code._display_code('random_forest_classifier')
+                elif st.session_state.selected_option == "Gradient Boosting Classifier":
+                    self.view_code._display_code('gradient_boosting_classifier')
