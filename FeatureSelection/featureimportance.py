@@ -10,11 +10,13 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
-
+from show_code import ShowCode
 
 class FeatureImportanceAnalyzer:
     def __init__(self, data):
         self.data = data
+        self.view_code = ShowCode()
+        self.view_code.set_target_class(FeatureImportanceAnalyzer)
 
     def linear_regression_importance(self, X_train, y_train):
         try:
@@ -103,25 +105,20 @@ class FeatureImportanceAnalyzer:
             st.info("Please use categorical labels (e.g., classes) for classification tasks.")
             return None
 
-    # Method for chi-square test feature selection
     def chi_square_test(self, target_column, select_k=10):
         X = self.data.drop(columns=[target_column])
         y = self.data[target_column]
         n_features = X.shape[1]  # Number of features in X
 
         try:
-            
             if select_k >= 1:
                 if select_k > n_features:
                     raise ValueError(f"k should be <= n_features = {n_features}; got {select_k}. Use k='all' to return all features.")
                 sel_ = SelectKBest(chi2, k=select_k).fit(X, y)
                 col = X.columns[sel_.get_support()]
-                
-
             elif 0 < select_k < 1:
                 sel_ = SelectPercentile(chi2, percentile=select_k * 100).fit(X, y)
                 col = X.columns[sel_.get_support()]
-                
             else:
                 raise ValueError("select_k must be a positive number")
 
@@ -132,10 +129,8 @@ class FeatureImportanceAnalyzer:
         
         except ValueError:
             st.info("Please use categorical labels (e.g., classes) for classification tasks.")
-                
             return None
 
-    # Method for univariate MSE feature selection
     def univariate_mse(self, X_train, y_train, X_test, y_test, threshold):
         mse_values = []
         for feature in X_train.columns:
@@ -154,7 +149,6 @@ class FeatureImportanceAnalyzer:
         
         return keep_col
 
-
     def analyze_features(self):
         st.markdown("<h1 style='text-align: center; font-size: 30px;'>Feature Importance Analysis</h1>", unsafe_allow_html=True)
         st.markdown("---")
@@ -163,58 +157,65 @@ class FeatureImportanceAnalyzer:
 
         target_column = st.sidebar.selectbox("Select Target Column", self.data.columns)
 
-        option = st.sidebar.selectbox("Select a Model for Feature Importance Analysis", [
+        options = [
             "Linear Regression Importance",
             "Random Forest Regression Feature Importance",
             "Random Forest Classifier Importance",
             "Gradient Boosting Classifier Importance",
             "Chi-Square Test Feature Selection",
             "Univariate MSE Feature Selection"
-        ])
+        ]
+
+        option = st.sidebar.selectbox("Select a Model for Feature Importance Analysis", options)
         
-        if option == "Linear Regression Importance":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression Feature Importance</h2>", unsafe_allow_html=True)
-
-            if st.button("Analyze"):
-                X = self.data.drop(columns=[target_column])
-                y = self.data[target_column]
-                self.linear_regression_importance(X, y)
-
-        elif option == "Random Forest Regression Feature Importance":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression Feature Importance</h2>", unsafe_allow_html=True)
-            if st.button("Analyze"):
-                X = self.data.drop(columns=[target_column])
-                y = self.data[target_column]
-                self.random_forest_regression_importance(X, y)
-
-        elif option == "Random Forest Classifier Importance":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Feature Importance</h2>", unsafe_allow_html=True)
-
-            if st.button("Analyze"):
-                X = self.data.drop(columns=[target_column])
-                y = self.data[target_column]
-                self.random_forest_importance(X, y)
-
-        elif option == "Gradient Boosting Classifier Importance":
-            st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Feature Importance</h2>", unsafe_allow_html=True)
-
-            if st.button("Analyze"):
-                X = self.data.drop(columns=[target_column])
-                y = self.data[target_column]
-                self.gradient_boosting_importance(X, y)
-                
-        elif option == "Chi-Square Test Feature Selection":
-            select_k = st.slider("Select K Features", min_value=1, max_value=len(self.data.columns), value=10)
-            
-            if st.button("Analyze"):
-                self.chi_square_test(target_column, select_k)
+        if 'analyzed_data' not in st.session_state:
+            st.session_state.analyzed_data = None
         
-        elif option == "Univariate MSE Feature Selection":
-            threshold = st.slider("MSE Threshold", min_value=0.0, max_value=1.0, value=0.3, step=0.05)
-            
-            if st.button("Analyze"):
-                X = self.data.drop(columns=[target_column])
-                y = self.data[target_column]
+        if 'selected_option' not in st.session_state:
+            st.session_state.selected_option = None
+
+        if 'show_code' not in st.session_state:
+            st.session_state.show_code = False
+
+        analyze_button = st.button("Analyze")
+
+        if analyze_button or (st.session_state.analyzed_data is not None and option == st.session_state.selected_option):
+            X = self.data.drop(columns=[target_column])
+            y = self.data[target_column]
+
+            if option == "Linear Regression Importance":
+                st.session_state.analyzed_data = self.linear_regression_importance(X, y)
+            elif option == "Random Forest Regression Feature Importance":
+                st.session_state.analyzed_data = self.random_forest_regression_importance(X, y)
+            elif option == "Random Forest Classifier Importance":
+                st.session_state.analyzed_data = self.random_forest_importance(X, y)
+            elif option == "Gradient Boosting Classifier Importance":
+                st.session_state.analyzed_data = self.gradient_boosting_importance(X, y)
+            elif option == "Chi-Square Test Feature Selection":
+                select_k = st.slider("Select K Features", min_value=1, max_value=len(X.columns), value=10)
+                st.session_state.analyzed_data = self.chi_square_test(target_column, select_k)
+            elif option == "Univariate MSE Feature Selection":
+                threshold = st.slider("MSE Threshold", min_value=0.0, max_value=1.0, value=0.3, step=0.05)
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                self.univariate_mse(X_train, y_train, X_test, y_test, threshold)
+                st.session_state.analyzed_data = self.univariate_mse(X_train, y_train, X_test, y_test, threshold)
+            
+            st.session_state.selected_option = option
 
+        if st.session_state.analyzed_data is not None:
+            st.session_state.show_code = st.checkbox('Show Code', value=st.session_state.show_code)
+            
+            if st.session_state.show_code:
+                if st.session_state.selected_option == "Linear Regression Importance":
+                    self.view_code._display_code('linear_regression_importance')
+                elif st.session_state.selected_option == "Random Forest Regression Feature Importance":
+                    self.view_code._display_code('random_forest_regression_importance')
+                elif st.session_state.selected_option == "Random Forest Classifier Importance":
+                    self.view_code._display_code('random_forest_importance')
+                elif st.session_state.selected_option == "Gradient Boosting Classifier Importance":
+                    self.view_code._display_code('gradient_boosting_importance')
+                elif st.session_state.selected_option == "Chi-Square Test Feature Selection":
+                    self.view_code._display_code('chi_square_test')
+                elif st.session_state.selected_option == "Univariate MSE Feature Selection":
+                    self.view_code._display_code('univariate_mse')
+
+        return self.data

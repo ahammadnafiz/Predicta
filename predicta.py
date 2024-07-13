@@ -167,7 +167,7 @@ class PredictaApp:
         """Display DateSet information."""
         if self.df is not None:
             overview_data = overview.DataOverview(self.df)
-            self.df = overview_data.data_overview()
+            overview_data.data_overview()
             self.save_modified_df()
         else:
             st.markdown(
