@@ -463,6 +463,114 @@ class DataAnalyzer:
             fig.write_html(dist_comp_plot_path)
             st.write('Distribution comparison plot saved at:', dist_comp_plot_path)
 
+    def _cohort_analysis(self, date_column, user_id_column, value_column):
+        """
+        Performs cohort analysis on the dataset.
+        
+        Args:
+            date_column (str): Name of the column containing dates.
+            user_id_column (str): Name of the column containing user IDs.
+            value_column (str): Name of the column containing values for analysis.
+        """
+        try:
+            self.data_copy = self.data.copy()
+            # Convert date column to datetime
+            self.data_copy[date_column] = pd.to_datetime(self.data_copy[date_column])
+        except Exception as e:
+            st.info("Error: You must use a valid date column for cohort analysis.")
+            st.write(f"Details: {e}")
+            return
+
+        try:
+            # Create cohort groups
+            self.data_copy['Cohort'] = self.data_copy.groupby(user_id_column)[date_column].transform('min').dt.to_period('M')
+            self.data_copy['Cohort_Index'] = (self.data_copy[date_column].dt.to_period('M') - self.data_copy['Cohort']).apply(lambda x: x.n)
+
+            # Create cohort table
+            cohort_table = self.data_copy.groupby(['Cohort', 'Cohort_Index'])[value_column].mean().unstack()
+
+            # Ensure cohort sizes are properly indexed
+            cohort_sizes = cohort_table.iloc[:, 0]
+            cohort_sizes.index = cohort_table.index
+
+            # Calculate retention rates
+            retention_table = cohort_table.divide(cohort_sizes, axis=0)
+
+            # Plot heatmap
+            fig = px.imshow(retention_table, 
+                            labels=dict(x="Months Since First Purchase", y="Cohort", color="Retention Rate"),
+                            x=retention_table.columns, 
+                            y=retention_table.index.astype(str))
+            fig.update_layout(title="Cohort Analysis - Retention Rates")
+            st.plotly_chart(fig)
+        except Exception as e:
+            st.info("An error occurred during the cohort analysis. Please ensure your data is formatted correctly and try again.")
+            st.write(f"Details: {e}")
+
+    def _funnel_analysis(self, stages):
+       """
+       Performs funnel analysis on the dataset.
+       
+       Args:
+           stages (list): List of column names representing stages in the funnel.
+       """
+       # Calculate conversion at each stage
+       funnel_data = []
+       total = len(self.data)
+       for stage in stages:
+           count = self.data[stage].sum()
+           percentage = (count / total) * 100
+           funnel_data.append({'Stage': stage, 'Count': count, 'Percentage': percentage})
+       
+       # Create funnel chart
+       fig = go.Figure(go.Funnel(
+           y=[d['Stage'] for d in funnel_data],
+           x=[d['Count'] for d in funnel_data],
+           textinfo="value+percent initial"))
+       
+       fig.update_layout(title="Funnel Analysis")
+       st.plotly_chart(fig)
+       
+       # Display conversion rates between stages
+       for i in range(len(funnel_data) - 1):
+           conversion_rate = (funnel_data[i+1]['Count'] / funnel_data[i]['Count']) * 100
+           st.write(f"Conversion from {funnel_data[i]['Stage']} to {funnel_data[i+1]['Stage']}: {conversion_rate:.2f}%")
+
+    def _customer_segmentation(self, features, n_clusters=3):
+       """
+       Performs customer segmentation using K-means clustering.
+       
+       Args:
+           features (list): List of column names to use for clustering.
+           n_clusters (int): Number of clusters to create.
+       """
+       from sklearn.preprocessing import StandardScaler
+       from sklearn.cluster import KMeans
+       
+       # Prepare the data
+       X = self.data[features]
+       scaler = StandardScaler()
+       X_scaled = scaler.fit_transform(X)
+       
+       # Perform clustering
+       kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+       self.data['Cluster'] = kmeans.fit_predict(X_scaled)
+       
+       # Visualize the clusters (for 2D or 3D)
+       if len(features) == 2:
+           fig = px.scatter(self.data, x=features[0], y=features[1], color='Cluster', title="Customer Segments")
+       elif len(features) == 3:
+           fig = px.scatter_3d(self.data, x=features[0], y=features[1], z=features[2], color='Cluster', title="Customer Segments")
+       else:
+           fig = px.parallel_coordinates(self.data, dimensions=features, color='Cluster', title="Customer Segments")
+       
+       st.plotly_chart(fig)
+       
+       # Display cluster statistics
+       for cluster in range(n_clusters):
+           st.write(f"Cluster {cluster} statistics:")
+           st.write(self.data[self.data['Cluster'] == cluster][features].describe())
+
 
     def analyzer(self):
         """
@@ -488,7 +596,10 @@ class DataAnalyzer:
                                                                              "Correlation Plot", 
                                                                              "Time Series Plot",
                                                                              "Distribution Comparison Plot", 
-                                                                             "Interactive Data Table"])
+                                                                             "Interactive Data Table", 
+                                                                             "Funnel Analysis",
+                                                                             "Cohort Analysis",
+                                                                             "Customer Segmentation"])
         
 
         if analysis_option == "Line Plot":
@@ -516,7 +627,6 @@ class DataAnalyzer:
                     self.view_code._display_code('_pie_chart')
             else:
                 st.warning("Please select at least one categorical column and one target column.")
-
         elif analysis_option == "Discrete Variable Barplot":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Discrete Variable Barplot</h1>", unsafe_allow_html=True)
             x = st.selectbox("Select X axis", self.data.columns)
@@ -602,5 +712,35 @@ class DataAnalyzer:
         elif analysis_option == "Interactive Data Table":
             st.markdown("<h1 style='text-align: center; font-size: 25px;'>Interactive Data Table</h1>", unsafe_allow_html=True)
             self._interactive_data_table()
-        
+        elif analysis_option == "Funnel Analysis":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Funnel Analysis</h1>", unsafe_allow_html=True)
+            stages = st.multiselect("Select Funnel Stages", self.data.columns)
+            if stages:
+                self._funnel_analysis(stages)
+                if st.checkbox('Show Code'):
+                    self.view_code._display_code('_funnel_analysis')
+            else:
+                st.warning("Please select at least two stages for the funnel analysis.")
+        elif analysis_option == "Cohort Analysis":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Cohort Analysis</h1>", unsafe_allow_html=True)
+            date_column = st.selectbox("Select Date Column", self.data.columns)
+            user_id_column = st.selectbox("Select User ID Column", self.data.columns)
+            value_column = st.selectbox("Select Value Column", self.data.columns)
+            if date_column and user_id_column and value_column:
+                self._cohort_analysis(date_column, user_id_column, value_column)
+                if st.checkbox('Show Code'):
+                    self.view_code._display_code('_cohort_analysis')
+            else:
+                st.warning("Please select all required columns for cohort analysis.")
+        elif analysis_option == "Customer Segmentation":
+            st.markdown("<h1 style='text-align: center; font-size: 25px;'>Customer Segmentation</h1>", unsafe_allow_html=True)
+            features = st.multiselect("Select Features for Segmentation", self.data.columns)
+            n_clusters = st.slider("Number of Clusters", min_value=2, max_value=10, value=3)
+            if features:
+                self._customer_segmentation(features, n_clusters)
+                if st.checkbox('Show Code'):
+                    self.view_code._display_code('_customer_segmentation')
+            else:
+                st.warning("Please select at least two features for customer segmentation.")
+
         return self.data
