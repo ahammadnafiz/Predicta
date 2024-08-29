@@ -487,7 +487,7 @@ class DataAnalyzer:
             self.data_copy['Cohort_Index'] = (self.data_copy[date_column].dt.to_period('M') - self.data_copy['Cohort']).apply(lambda x: x.n)
 
             # Create cohort table
-            cohort_table = self.data_copy.groupby(['Cohort', 'Cohort_Index'])[value_column].mean().unstack()
+            cohort_table = self.data_copyx.groupby(['Cohort', 'Cohort_Index'])[value_column].mean().unstack()
 
             # Ensure cohort sizes are properly indexed
             cohort_sizes = cohort_table.iloc[:, 0]
