@@ -34,24 +34,37 @@ class PredictaCodeEditor:
         """
         Define the initial code and mode for the code editor.
         """
-        self.demo_sample_python_code = '''# Start Writing Code!'''
+        self.demo_sample_python_code = '''# Your dataframe is available as 'df'
+# Start writing code to analyze or manipulate the data
+print(df.head())
+print(df.describe())
+
+# Example: Create a simple plot
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+df.plot(kind='scatter', x=df.columns[0], y=df.columns[1])
+plt.title('Scatter plot of first two columns')
+plt.tight_layout()
+st.pyplot(plt)
+'''
         self.mode_list = ["python"]
 
     def run_code_editor(self, df):
         """ Run the Predicta Code Editor in a Streamlit app.
         """
-        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
-        st.dataframe(df, width=800)
+        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset Preview</h2>", unsafe_allow_html=True)
+        st.dataframe(df.head(), width=800)
         st.markdown("<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 30px;'>Predicta Code Editor</div>", unsafe_allow_html=True)
         st.divider()
 
-        editor_choice = st.sidebar.selectbox("Choose Editor", ["Jupyter", "Code Editor"])
+        editor_choice = st.sidebar.selectbox("Choose Editor", ["Code Editor", "Jupyter"])
         
         if editor_choice == "Jupyter":
             url = "https://jupyter.org/try#jupyterlab"
             self.display_jupyter_iframe(url)
         else:
-            self.display_code_editor()
+            self.display_code_editor(df)
 
     def display_jupyter_iframe(self, url):
         html_code = f"""
@@ -96,7 +109,7 @@ class PredictaCodeEditor:
         """
         st.markdown(html_code, unsafe_allow_html=True)
 
-    def display_code_editor(self):
+    def display_code_editor(self, df):
         height = self.get_editor_height()
         language = "python"
         
@@ -116,7 +129,7 @@ class PredictaCodeEditor:
         st.markdown('<div class="centered">', unsafe_allow_html=True)
         response_dict = code_editor(self.demo_sample_python_code, height=height, lang=language, buttons=self.custom_buttons)
         if response_dict['type'] == "submit" and response_dict['text']:
-            self.execute_code(response_dict)
+            self.execute_code(response_dict, df)
         st.markdown('</div>', unsafe_allow_html=True)
 
     def get_editor_height(self):
@@ -128,12 +141,12 @@ class PredictaCodeEditor:
         elif height_type == "Min-Max Lines":
             return st.slider("Min-Max Lines:", 1, 40, (19, 22))
 
-    def execute_code(self, response_dict):
+    def execute_code(self, response_dict, df):
         st.write('Output')
         buffer = io.StringIO()
         sys.stdout = buffer
         try:
-            exec(response_dict['text'])
+            exec(response_dict['text'], {'df': df, 'st': st, 'plt': plt, 'np': np, 'pd': pd, 'go': go, 'sns': sns, 'zscore': zscore})
         except Exception as e:
             st.error(f"Error executing code: {e}")
         finally:
