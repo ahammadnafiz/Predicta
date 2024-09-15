@@ -9,8 +9,6 @@ import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import zscore
 
-st.set_option('deprecation.showPyplotGlobalUse', False)
-
 class PredictaCodeEditor:
     """
     A class to create a Predicta Code Editor in a Streamlit app.
@@ -44,100 +42,103 @@ class PredictaCodeEditor:
         """
         st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
         st.dataframe(df, width=800)
-        st.markdown("<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 30px;'>Predicta Code Editor.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 30px;'>Predicta Code Editor</div>", unsafe_allow_html=True)
         st.divider()
 
         editor_choice = st.sidebar.selectbox("Choose Editor", ["Jupyter", "Code Editor"])
         
         if editor_choice == "Jupyter":
-                        
             url = "https://jupyter.org/try#jupyterlab"
-
-            # Define custom HTML/CSS for the responsive embedded website
-            html_code = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Embedded Website</title>
-                <style>
-                    body, html {{
-                        height: 100%;
-                        margin: 0;
-                        padding: 0;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        background-color: #f5f5f5;
-                    }}
-                    .iframe-container {{
-                        width: 100%;
-                        max-width: 1200px;
-                        height: 80vh;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        overflow: hidden;
-                    }}
-                    iframe {{
-                        width: 100%;
-                        height: 100%;
-                        border: none;
-                        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-                        border-radius: 12px;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="iframe-container">
-                    <iframe src="{url}"></iframe>
-                </div>
-            </body>
-            </html>
-            """
-
-            # Display the custom HTML content using Markdown
-            st.markdown(html_code, unsafe_allow_html=True)
-            
+            self.display_jupyter_iframe(url)
         else:
-            
-            height = 800
-            language = "python"
-            
-            height_type = st.sidebar.selectbox("Height Format:", ["CSS", "Max Lines", "Min-Max Lines"], index=0)
-            if height_type == "CSS":
-                height = st.sidebar.text_input("Height (CSS):", "600px")
-            elif height_type == "Max Lines":
-                height = st.slider("Max Lines:", 1, 40, 22)
-            elif height_type == "Min-Max Lines":
-                height = st.slider("Min-Max Lines:", 1, 40, (19, 22))
+            self.display_code_editor()
 
-            st.markdown(
-                """
-                <style>
-                .centered {
+    def display_jupyter_iframe(self, url):
+        html_code = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Embedded Website</title>
+            <style>
+                body, html {{
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
                     display: flex;
                     justify-content: center;
                     align-items: center;
+                    background-color: #f5f5f5;
+                }}
+                .iframe-container {{
+                    width: 100%;
+                    max-width: 1200px;
+                    height: 80vh;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    overflow: hidden;
+                }}
+                iframe {{
+                    width: 100%;
                     height: 100%;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown('<div class="centered">', unsafe_allow_html=True)
-            response_dict = code_editor(self.demo_sample_python_code, height=height, lang=language, buttons=self.custom_buttons)
-            if response_dict['type'] == "submit" and len(response_dict['text']) != 0:
-                st.write('Output')
-                buffer = io.StringIO()
-                sys.stdout = buffer
-                try:
-                    exec(response_dict['text'])
-                except Exception as e:
-                    st.write(f"Error executing code: {e}")
-                finally:
-                    sys.stdout = sys.__stdout__
-                    output = buffer.getvalue()
-                    if output:
-                        st.code(output, language=response_dict['lang'])
-                    buffer.close()
-            st.markdown('</div>', unsafe_allow_html=True)
+                    border: none;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                    border-radius: 12px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="iframe-container">
+                <iframe src="{url}"></iframe>
+            </div>
+        </body>
+        </html>
+        """
+        st.markdown(html_code, unsafe_allow_html=True)
+
+    def display_code_editor(self):
+        height = self.get_editor_height()
+        language = "python"
+        
+        st.markdown(
+            """
+            <style>
+            .centered {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="centered">', unsafe_allow_html=True)
+        response_dict = code_editor(self.demo_sample_python_code, height=height, lang=language, buttons=self.custom_buttons)
+        if response_dict['type'] == "submit" and response_dict['text']:
+            self.execute_code(response_dict)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    def get_editor_height(self):
+        height_type = st.sidebar.selectbox("Height Format:", ["CSS", "Max Lines", "Min-Max Lines"], index=0)
+        if height_type == "CSS":
+            return st.sidebar.text_input("Height (CSS):", "600px")
+        elif height_type == "Max Lines":
+            return st.slider("Max Lines:", 1, 40, 22)
+        elif height_type == "Min-Max Lines":
+            return st.slider("Min-Max Lines:", 1, 40, (19, 22))
+
+    def execute_code(self, response_dict):
+        st.write('Output')
+        buffer = io.StringIO()
+        sys.stdout = buffer
+        try:
+            exec(response_dict['text'])
+        except Exception as e:
+            st.error(f"Error executing code: {e}")
+        finally:
+            sys.stdout = sys.__stdout__
+            output = buffer.getvalue()
+            if output:
+                st.code(output, language=response_dict['lang'])
+            buffer.close()
