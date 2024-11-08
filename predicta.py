@@ -10,7 +10,6 @@ from MLModel import predictmlalgo
 from codeditor import PredictaCodeEditor
 from DataExplore import explore, overview
 from FeatureSelection import featureimportance, hyperparameter
-from chat import ChatPredicta
 from Theme import theme
 
 class PredictaApp:
@@ -274,19 +273,6 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", use_column_width=True)
         self.show_footer()
-
-    def handle_chat_with_predicta(self):
-        """Handle chat interaction with Predicta."""
-        if self.df is not None:
-            chat_page = ChatPredicta(self.df, self.anthropi_api_key)
-            chat_page.chat_with_predicta()
-        else:
-            st.markdown(
-                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Chat.</div>",
-                unsafe_allow_html=True,
-            )
-            st.image("assets/uploadfile.png", use_column_width=True)
-            self.show_footer()
 
     def code_editor(self):
         """Launch the code editor."""
