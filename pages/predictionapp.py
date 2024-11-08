@@ -13,7 +13,7 @@ class PredictionApp:
     def show_hero_image(self):
         """Display the hero image."""
         st.image("assets/Prediction app.png")
-    
+
     def show_footer(self):
         """Display the footer."""
         st.markdown("---")
