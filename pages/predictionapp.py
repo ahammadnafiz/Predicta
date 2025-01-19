@@ -121,7 +121,7 @@ class PredictionApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Explore.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_column_width=True)
+            st.image("assets/uploadfile.png", use_container_width=True)
         self.show_footer()
 
 if __name__ == "__main__":
