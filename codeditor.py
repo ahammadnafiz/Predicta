@@ -145,7 +145,7 @@ st.pyplot(plt)
         buffer = io.StringIO()
         sys.stdout = buffer
         try:
-            exec(response_dict['text'], {'df': df, 'st': st, 'plt': plt, 'np': np, 'pd': pd, 'go': go, 'sns': sns, 'zscore': zscore})
+            exec(response_dict['text'], {'df': df, 'st': st, 'plt': plt, 'np': np, 'pd': pd, 'go': go, 'sns': sns,})
         except Exception as e:
             st.error(f"Error executing code: {e}")
         finally:
