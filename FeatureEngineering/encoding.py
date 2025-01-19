@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from sklearn.preprocessing import OneHotEncoder
 import category_encoders as ce
 from show_code import ShowCode
 
@@ -18,12 +19,22 @@ class DataEncoder:
 
     def one_hot_encoding(self, col):
         if len(self.data[col].unique()) > 2:
-            encoder = ce.OneHotEncoder(cols=[col], use_cat_names=True)
-            encoded_values = encoder.fit_transform(self.data)[encoder.feature_names_]
-            new_cols = [col + '_' + str(i) for i in range(encoded_values.shape[1])]
-            encoded_df = pd.DataFrame(encoded_values, columns=new_cols, index=self.data.index)
+            # Initialize the OneHotEncoder
+            encoder = OneHotEncoder(sparse_output=False)
+            
+            # Fit and transform the data
+            encoded_array = encoder.fit_transform(self.data[[col]])
+            
+            # Get feature names
+            feature_names = [f"{col}_{val}" for val in encoder.categories_[0]]
+            
+            # Create a DataFrame with the encoded values
+            encoded_df = pd.DataFrame(encoded_array, columns=feature_names, index=self.data.index)
+            
+            # Concatenate with original data and drop the original column
             self.data = pd.concat([self.data, encoded_df], axis=1)
             self.data.drop(columns=[col], inplace=True)
+            
         return self.data
 
     def mean_encoding(self, col, target_col):

@@ -2,183 +2,429 @@ import pandas as pd
 import numpy as np
 import logging
 import streamlit as st
+from sklearn.impute import SimpleImputer, KNNImputer
 from show_code import ShowCode
-
 
 class DataImputer:
     def __init__(self, data):
         super().__init__()
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Input data must be a pandas DataFrame.")
-        self.data = data
+        self.data = data.copy()
+        self.original_data = data.copy()  # Keep original data for reference
         self.view_code = ShowCode()
         self.view_code.set_target_class(DataImputer)
+        self._setup_logger()
+        
+    def _setup_logger(self):
+        """Set up logging configuration"""
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(logging.StreamHandler())
+        if not self.logger.handlers:
+            self.logger.addHandler(logging.StreamHandler())
 
-    def _drop_columns(self, columns_to_drop):
+    def auto_clean(self, threshold_missing=0.7, strategy='auto'):
         """
-        Drops the specified columns from the DataFrame.
+        Automatically clean the dataset using a comprehensive approach.
+        
+        Parameters:
+        -----------
+        threshold_missing : float
+            Threshold for dropping columns with missing values (0 to 1)
+        strategy : str
+            'auto': automatically choose best strategy based on data
+            'aggressive': maximum cleaning with data loss
+            'conservative': minimal cleaning to preserve data
         """
         try:
-            # Check if the columns exist in the DataFrame
-            non_existent_cols = [col for col in columns_to_drop if col not in self.data.columns]
-            if non_existent_cols:
-                st.error("The following columns do not exist in the DataFrame and will be ignored: %s" % ", ".join(non_existent_cols))
-                columns_to_drop = [col for col in columns_to_drop if col in self.data.columns]
-
-            # Drop the specified columns
-            self.data = self.data.drop(columns_to_drop, axis=1)
-            st.info("Dropped the following columns: %s" % ", ".join(columns_to_drop))
-            return self.data
-
-        except Exception as e:
-            st.error("An error occurred while dropping columns: %s" % str(e))
-    
-    def check_missing(self, output_path=None):
-        try:
-            result = pd.concat([self.data.isnull().sum(), self.data.isnull().mean()], axis=1)
-            result = result.rename(index=str, columns={0: 'total missing', 1: 'proportion'})
+            st.info("Starting automated cleaning process...")
             
-            if output_path is not None:
-                result.to_csv(output_path + 'missing.csv')
-                self.logger.info('Result saved at %smissing.csv', output_path)
+            # 1. Initial analysis
+            missing_stats = self.check_missing()
+            total_rows = len(self.data)
+            
+            # 2. Drop columns with too many missing values
+            cols_to_drop = missing_stats[missing_stats['proportion'] > threshold_missing].index.tolist()
+            if cols_to_drop:
+                self._drop_columns(cols_to_drop)
+                st.info(f"Dropped {len(cols_to_drop)} columns with more than {threshold_missing*100}% missing values")
+            
+            # 3. Identify numeric and categorical columns
+            numeric_cols = self.data.select_dtypes(include=[np.number]).columns
+            categorical_cols = self.data.select_dtypes(exclude=[np.number]).columns
+            
+            # 4. Handle numeric columns
+            if len(numeric_cols) > 0:
+                if strategy == 'aggressive':
+                    self.impute_NA_with_simple_imputer(NA_col=numeric_cols, strategy='mean')
+                elif strategy == 'conservative':
+                    self.impute_NA_with_knn(NA_col=numeric_cols, n_neighbors=5)
+                else:  # auto strategy
+                    for col in numeric_cols:
+                        missing_ratio = self.data[col].isnull().mean()
+                        if missing_ratio < 0.1:
+                            self.impute_NA_with_simple_imputer(NA_col=[col], strategy='mean')
+                        else:
+                            self.impute_NA_with_knn(NA_col=[col], n_neighbors=5)
+            
+            # 5. Handle categorical columns
+            if len(categorical_cols) > 0:
+                self.impute_NA_with_simple_imputer(NA_col=categorical_cols, strategy='most_frequent')
+            
+            # 6. Final cleanup
+            remaining_nulls = self.data.isnull().sum().sum()
+            if remaining_nulls > 0 and strategy == 'aggressive':
+                self.drop_missing(axis=0)
+            
+            # 7. Generate report
+            cleaning_report = {
+                'original_rows': total_rows,
+                'original_columns': len(self.original_data.columns),
+                'final_rows': len(self.data),
+                'final_columns': len(self.data.columns),
+                'columns_dropped': len(cols_to_drop),
+                'remaining_nulls': remaining_nulls
+            }
+            
+            st.success("Automated cleaning completed!")
+            st.write("Cleaning Report:", cleaning_report)
+            
+            return self.data
+            
+        except Exception as e:
+            st.error(f"Error during automated cleaning: {str(e)}")
+            self.logger.error(f"Auto-cleaning failed: {str(e)}")
+            raise
+
+    def check_missing(self, output_path=None):
+        """Analyze missing values in the dataset."""
+        try:
+            missing_counts = self.data.isnull().sum()
+            missing_proportions = self.data.isnull().mean()
+            missing_types = self.data.dtypes
+            
+            result = pd.DataFrame({
+                'total missing': missing_counts,
+                'proportion': missing_proportions,
+                'dtype': missing_types
+            })
+            
+            if output_path:
+                result.to_csv(f"{output_path}/missing_analysis.csv")
+                self.logger.info(f"Missing value analysis saved to {output_path}/missing_analysis.csv")
+            
             return result
         except Exception as e:
-            self.logger.error("An error occurred while checking missing values: %s", str(e))
+            self.logger.error(f"Error analyzing missing values: {str(e)}")
             raise
 
-    def drop_missing(self, axis=0):
+    def _drop_columns(self, columns_to_drop):
+        """Drops the specified columns from the DataFrame."""
+        try:
+            non_existent_cols = [col for col in columns_to_drop if col not in self.data.columns]
+            if non_existent_cols:
+                st.error(f"Columns not found: {', '.join(non_existent_cols)}")
+                columns_to_drop = [col for col in columns_to_drop if col in self.data.columns]
+            
+            self.data = self.data.drop(columns_to_drop, axis=1)
+            st.info(f"Dropped columns: {', '.join(columns_to_drop)}")
+            return self.data
+        except Exception as e:
+            st.error(f"Error dropping columns: {str(e)}")
+            raise
+
+    def drop_missing(self, axis=0, threshold=None):
+        """Drop rows or columns with missing values."""
         try:
             original_shape = self.data.shape
-            self.data = self.data.dropna(axis=axis)
-            if self.data.shape == original_shape:
-                return None  
-            else:
-                return self.data
-        except Exception as e:
-            self.logger.error("An error occurred while dropping missing values: %s", str(e))
-            raise
-            
-    def add_var_denote_NA(self, NA_col=[]):
-        try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    self.data[i] = np.where(self.data[i].isnull(), 1, 0)
-                    return self.data
+            if threshold:
+                if axis == 0:
+                    self.data = self.data.dropna(axis=0, thresh=threshold)
                 else:
-                    self.logger.warning("Column %s has no missing cases", i)
+                    self.data = self.data.dropna(axis=1, thresh=threshold)
+            else:
+                self.data = self.data.dropna(axis=axis)
+            
+            if self.data.shape == original_shape:
+                st.info("No rows/columns were dropped")
+            else:
+                st.info(f"Shape changed from {original_shape} to {self.data.shape}")
+            return self.data
         except Exception as e:
-            self.logger.error("An error occurred while adding variable to denote NA: %s", str(e))
+            st.error(f"Error dropping missing values: {str(e)}")
+            raise
+
+    def add_var_denote_NA(self, NA_col=[]):
+        """Create binary indicators for missing values."""
+        try:
+            for col in NA_col:
+                if col in self.data.columns:
+                    if self.data[col].isnull().sum() > 0:
+                        self.data[f"{col}_is_missing"] = self.data[col].isnull().astype(int)
+                    else:
+                        st.info(f"No missing values in column: {col}")
+            return self.data
+        except Exception as e:
+            st.error(f"Error creating missing indicators: {str(e)}")
             raise
 
     def impute_NA_with_arbitrary(self, impute_value, NA_col=[]):
+        """Impute missing values with a specified value."""
         try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    self.data[i].fillna(impute_value, inplace=True)
-                else:
-                    self.logger.warning("Column %s has no missing cases", i)
+            for col in NA_col:
+                if col in self.data.columns:
+                    missing_count = self.data[col].isnull().sum()
+                    if missing_count > 0:
+                        self.data[col].fillna(impute_value, inplace=True)
+                        st.info(f"Imputed {missing_count} missing values in {col}")
+            return self.data
         except Exception as e:
-            self.logger.error("An error occurred while imputing NA with arbitrary value: %s", str(e))
+            st.error(f"Error during arbitrary imputation: {str(e)}")
             raise
 
     def impute_NA_with_avg(self, strategy='mean', NA_col=[]):
+        """Impute missing values with mean, median, or mode."""
         try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    if strategy == 'mean':
-                        self.data[i].fillna(self.data[i].mean(), inplace=True)
-                    elif strategy == 'median':
-                        self.data[i].fillna(self.data[i].median(), inplace=True)
-                    elif strategy == 'mode':
-                        self.data[i].fillna(self.data[i].mode()[0], inplace=True)
-                else:
-                    self.logger.warning("Column %s has no missing", i)
+            for col in NA_col:
+                if col in self.data.columns:
+                    if self.data[col].isnull().sum() > 0:
+                        if strategy == 'mean':
+                            self.data[col].fillna(self.data[col].mean(), inplace=True)
+                        elif strategy == 'median':
+                            self.data[col].fillna(self.data[col].median(), inplace=True)
+                        elif strategy == 'mode':
+                            self.data[col].fillna(self.data[col].mode()[0], inplace=True)
             return self.data
         except Exception as e:
-            error_msg = "An error occurred while imputing NA with average: %s" % str(e)
-            st.error(error_msg)
-
-    def impute_NA_with_end_of_distribution(self, NA_col=[]):
-        try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    self.data[i].fillna(self.data[i].mean() + 3 * self.data[i].std(), inplace=True)
-                    return self.data
-                else:
-                    self.logger.warning("Column %s has no missing", i)
-        except Exception as e:
-            self.logger.error("An error occurred while imputing NA with end of distribution: %s", str(e))
-            raise
-
-    def impute_NA_with_random(self, NA_col=[], random_state=0):
-        try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    random_sample = self.data[i].dropna().sample(self.data[i].isnull().sum(), random_state=random_state)
-                    random_sample.index = self.data[self.data[i].isnull()].index
-                    self.data.loc[self.data[i].isnull(), i] = random_sample
-                    return self.data
-                
-                else:
-                    self.logger.warning("Column %s has no missing", i)
-        except Exception as e:
-            self.logger.error("An error occurred while imputing NA with random sampling: %s", str(e))
+            st.error(f"Error during average imputation: {str(e)}")
             raise
 
     def impute_NA_with_interpolation(self, method='linear', limit=None, limit_direction='forward', NA_col=[]):
+        """Impute missing values using interpolation."""
         try:
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    self.data[i] = self.data[i].interpolate(method=method, limit=limit, limit_direction=limit_direction)
-                    return self.data
-                else:
-                    self.logger.warning("Column %s has no missing cases", i)
+            for col in NA_col:
+                if col in self.data.columns:
+                    if self.data[col].isnull().sum() > 0:
+                        self.data[col] = self.data[col].interpolate(
+                            method=method,
+                            limit=limit,
+                            limit_direction=limit_direction
+                        )
+            return self.data
         except Exception as e:
-            self.logger.error("An error occurred while imputing NA with interpolation: %s", str(e))
+            st.error(f"Error during interpolation: {str(e)}")
             raise
 
     def impute_NA_with_knn(self, NA_col=[], n_neighbors=5):
+        """Impute missing values using K-Nearest Neighbors."""
         try:
-            from sklearn.impute import KNNImputer
-            knn_imputer = KNNImputer(n_neighbors=n_neighbors)
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    imputed_values = knn_imputer.fit_transform(self.data[i].values.reshape(-1, 1))
-                    self.data[i] = imputed_values.ravel()
-                    return self.data
-                else:
-                    self.logger.warning("Column %s has no missing cases", i)
+            imputer = KNNImputer(n_neighbors=n_neighbors)
+            for col in NA_col:
+                if col in self.data.columns:
+                    if self.data[col].isnull().sum() > 0:
+                        self.data[col] = imputer.fit_transform(self.data[[col]])
+            return self.data
         except Exception as e:
-            self.logger.error("An error occurred while imputing NA with KNN: %s", str(e))
+            st.error(f"Error during KNN imputation: {str(e)}")
             raise
 
     def impute_NA_with_simple_imputer(self, NA_col=[], strategy='mean'):
+        """Impute missing values using SimpleImputer."""
         try:
-            from sklearn.impute import SimpleImputer
-            
-            for i in NA_col:
-                if self.data[i].isnull().sum() > 0:
-                    imputer = SimpleImputer(strategy=strategy)
-                    imputed_data = imputer.fit_transform(self.data[i].values.reshape(-1, 1))
-                    self.data[i] = imputed_data.ravel()
-                else:
-                    self.logger.warning("Column %s has no missing cases", i)
+            imputer = SimpleImputer(strategy=strategy)
+            for col in NA_col:
+                if col in self.data.columns:
+                    if self.data[col].isnull().sum() > 0:
+                        # Reshape the imputed values to 1D array before assignment
+                        imputed_values = imputer.fit_transform(self.data[[col]]).ravel()
+                        self.data[col] = imputed_values
+                        st.info(f"Imputed missing values in column: {col}")
             return self.data
-        
         except Exception as e:
-            self.logger.error("An error occurred while imputing NA with SimpleImputer: %s", str(e))
+            st.error(f"Error during simple imputation: {str(e)}")
             raise
 
+    def _handle_check_missing_values(self):
+        """Handle the Check Missing Values option in the Streamlit interface."""
+        self._handle_option("Check Missing Values", self.check_missing)
+
+    def _handle_drop_columns(self):
+        """Handle the Drop Columns option in the Streamlit interface."""
+        columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
+        self._handle_option("Drop Columns", self._drop_columns, columns_to_drop=columns_to_drop)
+
+    def _handle_drop_missing_values(self):
+        """Handle the Drop Missing Values option in the Streamlit interface."""
+        axis = st.radio("Drop rows or columns?", ["Rows", "Columns"])
+        threshold = st.number_input("Minimum number of non-NA values required", min_value=0, value=0)
+        axis = 0 if axis == "Rows" else 1
+        self._handle_option("Drop Missing Values", self.drop_missing, axis=axis, threshold=threshold)
+
+    def _handle_add_var_denote_na(self):
+        """Handle the Add Variable to Denote NA option in the Streamlit interface."""
+        selected_columns = st.multiselect("Select columns", self.data.columns)
+        self._handle_option("Add Variable to Denote NA", self.add_var_denote_NA, NA_col=selected_columns)
+
+    def _handle_impute_arbitrary(self):
+        """Handle the Impute NA with Arbitrary Value option in the Streamlit interface."""
+        impute_value = st.text_input("Enter Arbitrary Value")
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        if impute_value:
+            try:
+                impute_value = float(impute_value)
+                self._handle_option("Impute NA with Arbitrary Value", 
+                                  self.impute_NA_with_arbitrary, 
+                                  impute_value=impute_value, 
+                                  NA_col=na_cols)
+            except ValueError:
+                st.error("Please enter a valid numeric value")
+
+    def _handle_impute_interpolation(self):
+        """Handle the Impute NA with Interpolation option in the Streamlit interface."""
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        method = st.selectbox("Interpolation Method", ['linear', 'quadratic', 'cubic'])
+        limit = st.number_input("Limit", min_value=0, value=None)
+        limit_direction = st.selectbox("Limit Direction", ['forward', 'backward', 'both'])
+        self._handle_option("Impute NA with Interpolation", 
+                          self.impute_NA_with_interpolation,
+                          method=method,
+                          limit=limit,
+                          limit_direction=limit_direction,
+                          NA_col=na_cols)
+
+    def _handle_impute_knn(self):
+        """Handle the Impute NA with KNN option in the Streamlit interface."""
+        n_neighbors = st.number_input("Number of Neighbors", min_value=1, value=5)
+        selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
+        self._handle_option("Impute NA with KNN", 
+                          self.impute_NA_with_knn,
+                          NA_col=selected_columns,
+                          n_neighbors=n_neighbors)
+
+    def _handle_impute_simple_imputer(self):
+        """Handle the Impute NA with SimpleImputer option in the Streamlit interface."""
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        strategy = st.selectbox("Imputation Strategy", ["mean", "median", "most_frequent", "constant"])
+        self._handle_option("Impute NA with SimpleImputer",
+                          self.impute_NA_with_simple_imputer,
+                          NA_col=na_cols,
+                          strategy=strategy)
+
+    def _handle_impute_average(self):
+        """Handle the Impute NA with Average option in the Streamlit interface."""
+        na_cols = st.multiselect("Select Columns", self.data.columns)
+        strategy = st.selectbox("Strategy", ['mean', 'median', 'mode'])
+        self._handle_option("Impute NA with Average",
+                          self.impute_NA_with_avg,
+                          strategy=strategy,
+                          NA_col=na_cols)
+
+    def _handle_auto_clean(self):
+        """Handle the Auto Clean option in the Streamlit interface."""
+        st.markdown("<h2 style='text-align: center; font-size: 25px;'>Auto Clean</h2>", unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            threshold = st.slider(
+                "Missing Value Threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.7,
+                help="Columns with missing values above this threshold will be dropped"
+            )
+            
+        with col2:
+            strategy = st.selectbox(
+                "Cleaning Strategy",
+                ["auto", "aggressive", "conservative"],
+                help="""
+                auto: Automatically choose best strategy based on data
+                aggressive: Maximum cleaning with potential data loss
+                conservative: Minimal cleaning to preserve data
+                """
+            )
+        
+        if "auto_clean_clicked" not in st.session_state:
+            st.session_state.auto_clean_clicked = False
+            
+        if st.button("Execute Auto Clean"):
+            st.session_state.auto_clean_clicked = True
+            
+        if st.session_state.auto_clean_clicked:
+            self.auto_clean(threshold_missing=threshold, strategy=strategy)
+            
+            if "auto_clean_show_code" not in st.session_state:
+                st.session_state.auto_clean_show_code = False
+                
+            st.session_state.auto_clean_show_code = st.checkbox(
+                'Show Code',
+                value=st.session_state.auto_clean_show_code
+            )
+            
+            if st.session_state.auto_clean_show_code:
+                self.view_code._display_code('auto_clean')
+
+        # Add comparison with original data
+        if st.checkbox("Show Comparison with Original Data"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("<h3 style='text-align: center;'>Original Data</h3>", unsafe_allow_html=True)
+                st.dataframe(self.original_data)
+                st.write("Original Shape:", self.original_data.shape)
+                st.write("Original Missing Values:", self.original_data.isnull().sum().sum())
+                
+            with col2:
+                st.markdown("<h3 style='text-align: center;'>Cleaned Data</h3>", unsafe_allow_html=True)
+                st.dataframe(self.data)
+                st.write("New Shape:", self.data.shape)
+                st.write("Remaining Missing Values:", self.data.isnull().sum().sum())
+
+        # Add option to download cleaned data
+        if st.button("Download Cleaned Data"):
+            csv = self.data.to_csv(index=False)
+            st.download_button(
+                label="Download CSV",
+                data=csv,
+                file_name="cleaned_data.csv",
+                mime="text/csv"
+            )
+
+    def _handle_option(self, option_name, function, **kwargs):
+        """Generic handler for imputation options."""
+        st.markdown(f"<h2 style='text-align: center; font-size: 25px;'>{option_name}</h2>", unsafe_allow_html=True)
+        
+        if st.button("Execute"):
+            st.session_state[f'{option_name}_clicked'] = True
+
+        if st.session_state.get(f'{option_name}_clicked', False):
+            result = function(**kwargs)
+            st.write(result)
+            
+            show_code = st.checkbox(
+                'Show Code',
+                value=st.session_state.get(f'{option_name}_show_code', False)
+            )
+            st.session_state[f'{option_name}_show_code'] = show_code
+            
+            if show_code:
+                self.view_code._display_code(function.__name__)
+
     def imputer(self):
-        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Impute Missing Values</h1>", unsafe_allow_html=True)
+        """Streamlit interface for data imputation."""
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Data Imputation Dashboard</h1>", unsafe_allow_html=True)
         st.markdown("---")
-        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h1>", unsafe_allow_html=True)
+        
+        # Show dataset info
+        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset Information</h2>", unsafe_allow_html=True)
+        st.write(f"Shape: {self.data.shape}")
+        st.write(f"Missing Values: {self.data.isnull().sum().sum()}")
         st.dataframe(self.data, width=800)
 
+        # Options list including Auto Clean
         options = [
+            "Auto Clean",
             "Check Missing Values",
             "Drop Columns",
             "Drop Missing Values",
@@ -187,21 +433,15 @@ class DataImputer:
             "Impute NA with Interpolation",
             "Impute NA with KNN",
             "Impute NA with SimpleImputer",
-            "Impute NA with Average",
-            "Impute NA with End of Distribution",
-            "Impute NA with Random Sampling"
+            "Impute NA with Average"
         ]
 
-        option = st.sidebar.selectbox("Select an Imputation Method", options)
+        option = st.sidebar.selectbox("Select Imputation Method", options)
 
-        # Initialize session state for each option
-        for opt in options:
-            if f'{opt}_clicked' not in st.session_state:
-                st.session_state[f'{opt}_clicked'] = False
-            if f'{opt}_show_code' not in st.session_state:
-                st.session_state[f'{opt}_show_code'] = False
-
-        if option == "Check Missing Values":
+        # Handle selected option
+        if option == "Auto Clean":
+            self._handle_auto_clean()
+        elif option == "Check Missing Values":
             self._handle_check_missing_values()
         elif option == "Drop Columns":
             self._handle_drop_columns()
@@ -219,76 +459,5 @@ class DataImputer:
             self._handle_impute_simple_imputer()
         elif option == "Impute NA with Average":
             self._handle_impute_average()
-        elif option == "Impute NA with End of Distribution":
-            self._handle_impute_end_distribution()
-        elif option == "Impute NA with Random Sampling":
-            self._handle_impute_random()
 
         return self.data
-
-    def _handle_option(self, option, function, **kwargs):
-        st.markdown(f"<h1 style='text-align: center; font-size: 25px;'>{option}</h1>", unsafe_allow_html=True)
-        
-        if st.button("Execute"):
-            st.session_state[f'{option}_clicked'] = True
-
-        if st.session_state[f'{option}_clicked']:
-            result = function(**kwargs)
-            st.write(result)
-            
-            st.session_state[f'{option}_show_code'] = st.checkbox('Show Code', value=st.session_state[f'{option}_show_code'])
-            
-            if st.session_state[f'{option}_show_code']:
-                self.view_code._display_code(function.__name__)
-
-    def _handle_check_missing_values(self):
-        self._handle_option("Check Missing Values", self.check_missing)
-
-    def _handle_drop_columns(self):
-        columns_to_drop = st.multiselect("Select Columns to Drop", self.data.columns)
-        self._handle_option("Drop Columns", self._drop_columns, columns_to_drop=columns_to_drop)
-
-    def _handle_drop_missing_values(self):
-        axis = st.radio("Drop rows or columns?", ["Rows", "Columns"])
-        axis = 0 if axis == "Rows" else 1
-        self._handle_option("Drop Missing Values", self.drop_missing, axis=axis)
-
-    def _handle_add_var_denote_na(self):
-        selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
-        self._handle_option("Add Variable to Denote NA", self.add_var_denote_NA, NA_col=selected_columns)
-
-    def _handle_impute_arbitrary(self):
-        impute_value = st.text_input("Enter Arbitrary Value")
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        self._handle_option("Impute NA with Arbitrary Value", self.impute_NA_with_arbitrary, impute_value=float(impute_value), NA_col=na_cols)
-
-    def _handle_impute_interpolation(self):
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        interp_method = st.selectbox("Interpolation Method", ['linear', 'quadratic', 'cubic'])
-        interp_limit = st.text_input("Limit", None)
-        interp_limit_direction = st.selectbox("Limit Direction", ['forward', 'backward', 'both'])
-        self._handle_option("Impute NA with Interpolation", self.impute_NA_with_interpolation, method=interp_method, limit=interp_limit, limit_direction=interp_limit_direction, NA_col=na_cols)
-
-    def _handle_impute_knn(self):
-        n_neighbors = st.number_input("Number of Neighbors", min_value=1, value=5)
-        selected_columns = st.multiselect("Select columns to impute", options=self.data.columns)
-        self._handle_option("Impute NA with KNN", self.impute_NA_with_knn, NA_col=selected_columns, n_neighbors=n_neighbors)
-
-    def _handle_impute_simple_imputer(self):
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        impute_strategy = st.selectbox("Imputation Strategy", ["mean", "median", "most_frequent", "constant"])
-        self._handle_option("Impute NA with SimpleImputer", self.impute_NA_with_simple_imputer, NA_col=na_cols, strategy=impute_strategy)
-
-    def _handle_impute_average(self):
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        strategy = st.selectbox("Imputation Strategy", ['mean', 'median', 'mode'])
-        self._handle_option("Impute NA with Average", self.impute_NA_with_avg, strategy=strategy, NA_col=na_cols)
-
-    def _handle_impute_end_distribution(self):
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        self._handle_option("Impute NA with End of Distribution", self.impute_NA_with_end_of_distribution, NA_col=na_cols)
-
-    def _handle_impute_random(self):
-        na_cols = st.multiselect("Select Columns", self.data.columns)
-        random_state = st.number_input("Random State", min_value=0, value=0)
-        self._handle_option("Impute NA with Random Sampling", self.impute_NA_with_random, NA_col=na_cols, random_state=random_state)
