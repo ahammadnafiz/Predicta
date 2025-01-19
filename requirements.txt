@@ -22,3 +22,4 @@ streamlit-code-editor
 urllib3
 xgboost
 category_encoders
+imbalanced-learn
