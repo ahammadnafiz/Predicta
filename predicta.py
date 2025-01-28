@@ -80,12 +80,6 @@ class PredictaApp:
 
         self.file_upload()
 
-        # with st.sidebar:
-        #     self.anthropi_api_key = st.text_input(
-        #         "Anthropic API Key", key="file_qa_api_key", type="password"
-        #     )
-        #     "[Get an Anthropic API key](https://console.anthropic.com/)"
-
         st.sidebar.title("Tools")
         selected_option = st.sidebar.radio(
             "Select Option",
@@ -98,7 +92,6 @@ class PredictaApp:
                 "Data Analysis",
                 "Feature Importance Analyzer",
                 "Best Parameter Selector",
-                # "Chat With Predicta",
                 "PredictaCodeEditor",
                 "Select ML Models",
                 "Clear Modified DataSet",
@@ -114,8 +107,6 @@ class PredictaApp:
             self.handle_detect_outlier()
         elif selected_option == 'Encoder':
             self.encode_data()
-        # elif selected_option == "Chat With Predicta":
-        #     self.handle_chat_with_predicta()
         elif selected_option == "PredictaCodeEditor":
             self.code_editor()
         elif selected_option == "Select ML Models":
@@ -173,7 +164,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to see Informations.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
     
     def handle_data_explore(self):
@@ -187,7 +178,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Explore.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def clean_data(self):
@@ -201,7 +192,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to perform feature cleaning.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def handle_detect_outlier(self):
@@ -215,7 +206,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to detect outlier.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def encode_data(self):
@@ -229,11 +220,11 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to encode data.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
     
     def data_transformer(self):
-        """Handle data encoding."""
+        """Handle data transformation."""
         if self.df is not None:
             out = transform.DataTransformer(self.df)
             self.df = out.transformer()
@@ -243,7 +234,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to transform data.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def feature_importance(self):
@@ -257,11 +248,11 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to find feature importance.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
     
     def find_parameter(self):
-        """Find best parameter"""
+        """Find best parameter."""
         if self.df is not None:
             out = hyperparameter.BestParam(self.df)
             out.select_hyper()
@@ -271,7 +262,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to find best parameters.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def code_editor(self):
@@ -292,7 +283,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Perform Prediction.</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
         self.show_footer()
 
     def save_modified_df(self):
@@ -316,7 +307,7 @@ class PredictaApp:
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px; '>First Upload a DataSet</div>",
                 unsafe_allow_html=True,
             )
-            st.image("assets/uploadfile.png", use_container_width=True)
+            st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
 
         self.show_footer()
 
