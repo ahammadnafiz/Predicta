@@ -643,13 +643,19 @@ class PredictAlgo:
         st.write("Confusion Matrix:")
         st.table(cm_df)
 
-        # Plot confusion matrix as heatmap using seaborn
-        plt.figure(figsize=(6, 4))
-        sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues', cbar=False)
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.title('Confusion Matrix')
-        st.pyplot()
+        # Create figure and axes objects explicitly
+        fig, ax = plt.subplots(figsize=(6, 4))
+        
+        # Plot heatmap on the specific axes
+        sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax)
+        
+        # Set labels and title using the axes object
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('Actual')
+        ax.set_title('Confusion Matrix')
+        
+        # Display the figure using st.pyplot with the figure object
+        st.pyplot(fig)
 
     def logistic_regression(self, C, max_iter):
         features = st.multiselect("Select Feature Columns", self.data.columns)
