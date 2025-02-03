@@ -167,7 +167,7 @@ def show_footer():
         """Display the footer."""
         st.markdown("""
             <div class='footer'>
-                <p style='color: #888;'>© 2024 Predicta by Ahammad Nafiz</p>
+                <p style='color: #888;'>© 2025 Predicta by Ahammad Nafiz</p>
                 <div style='margin-top: 1rem;'>
                     <a href='https://github.com/ahammadnafiz' target='_blank'>GitHub</a> •
                     <a href='https://twitter.com/ahammadnafi_z' target='_blank'>Twitter</a> •
