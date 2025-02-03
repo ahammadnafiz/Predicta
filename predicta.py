@@ -289,29 +289,7 @@ class PredictaApp:
         self.load_modified_df()
         self.show_hero_image()
 
-        custom_css = """
-        .my-message {
-            text-align: center;
-            margin: 20px auto;
-            font-size: 17px;
-            font-weight: bold;
-            color: #333;
-            background-color: #f8f8f8;
-            padding: 20px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            }
-            """
-
-        # Inject custom CSS into Streamlit once at the beginning
-        st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
-
-        # Display styled markdown message using custom CSS class
-        st.markdown(
-            "<div class='my-message'>Please ensure uploaded datasets are cleared before exiting the application for security.</div>",
-            unsafe_allow_html=True,
-        )
+        theme.display_styled_message('Please ensure uploaded datasets are cleared before exiting the application for security.')
 
         st.divider()
 

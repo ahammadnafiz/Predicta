@@ -185,7 +185,7 @@ def contributor_info():
                          style='width: 60px; height: 60px; border-radius: 50%;'>
                     <div>
                         <h5 style='margin: 0; color: #FAFAFA;'>Ahammad Nafiz</h5>
-                        <p style='margin: 0; color: #888;'>Curious Learner</p>
+                        <p style='margin: 0; color: #888;'>Python | ML | AI</p>
                     </div>
                 </div>
                 <div style='margin-top: 1rem;'>
@@ -198,3 +198,30 @@ def contributor_info():
                 </div>
             </div>
         """, unsafe_allow_html=True)
+
+def display_styled_message(message_text):
+
+    custom_css = """
+        .my-message {
+            text-align: center;
+            margin-top: 3rem;
+            font-family: 'sans-serif';
+            font-size: 15px;
+            # font-weight: bold ;
+            color: #ACF39D;
+            background: var(--secondary-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    """
+
+    # Inject custom CSS into Streamlit once at the beginning
+    st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
+
+    # Display styled markdown message using custom CSS class
+    st.markdown(
+        f"<div class='my-message'>{message_text}</div>",
+        unsafe_allow_html=True,
+    )
