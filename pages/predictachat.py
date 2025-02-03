@@ -11,6 +11,7 @@ from Theme import theme
 
 class ChatPredicta:
     def __init__(self, df, groq_api_key):
+
         self.df = df
         self.groq_api_key = groq_api_key
         self.memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history", return_messages=True)
@@ -88,38 +89,11 @@ class ChatPredicta:
                 time.sleep(0.5)
                 st.write(response)
 
-def show_footer():
-        """Display the footer."""
-        st.markdown("---")
-        st.markdown("*copyright@ahammadnafiz*")
-
-        footer_content = """
-        <div class="footer">
-            Follow us: &nbsp;&nbsp;&nbsp;
-            <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
-            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦|
-            <a href="https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE" target="_blank">License</a> 📜
-        </div>
-        """
-        st.markdown(footer_content, unsafe_allow_html=True)
-    
-def contributor_info():
-    nafiz_info = {
-                "name": "Ahammad Nafiz",
-                "role": "Curious Learner",
-                "image_url": "https://avatars.githubusercontent.com/u/86776685?s=400&u=82112040d4a196f3d796c1aa4e7112d403c19450&v=4",
-                "linkedin_url": "https://www.linkedin.com/in/ahammad-nafiz/",
-                "github_url": "https://github.com/ahammadnafiz",
-            }
-    
-    st.sidebar.write("#### 👨‍💻 Developed by:")
-    st.sidebar.markdown(theme.contributor_card(
-        **nafiz_info,
-        ), 
-        unsafe_allow_html=True)
 
 def main():
+    
     st.set_page_config(layout="centered", page_icon="🤖", page_title="ChatPredicta")
+    theme.init_styling()
     st.image("assets/Hero.png")
     st.markdown("---")
     st.sidebar.title("PredictaChat App")
@@ -132,7 +106,8 @@ def main():
         st.session_state["messages"] = []
     
     st.sidebar.markdown("---")
-    contributor_info()
+    theme.contributor_info()
+    
     
     if not groq_api_key:
         st.info('Please add your api key first')
@@ -148,7 +123,8 @@ def main():
             unsafe_allow_html=True,
         )
         st.image("assets/uploadfile.png", use_container_width=True)
-        show_footer()
+        theme.show_footer()
+    
 
 if __name__ == "__main__":
     main()

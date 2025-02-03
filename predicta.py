@@ -29,24 +29,12 @@ class PredictaApp:
         self.modified_df_path = os.path.join(self.temp_dir, f"modified_data_{self.user_session}.csv")
         self.load_modified_df()
 
+        # Initialize custom styling
+        theme.init_styling()
+
     def show_hero_image(self):
         """Display the hero image."""
         st.image("assets/Hero.png")
-
-    def show_footer(self):
-        """Display the footer."""
-        st.markdown("---")
-        st.markdown("*copyright@ahammadnafiz*")
-
-        footer_content = """
-        <div class="footer">
-            Follow me: &nbsp;&nbsp;&nbsp;
-            <a href="https://github.com/ahammadnafiz" target="_blank">GitHub</a> 🚀 |
-            <a href="https://twitter.com/ahammadnafi_z" target="_blank">Twitter</a> 🐦 |
-            <a href="https://github.com/ahammadnafiz/Predicta/blob/main/LICENSE" target="_blank">License</a> 📜
-        </div>
-        """
-        st.markdown(footer_content, unsafe_allow_html=True)
 
     def read_csv_with_encoding(self, uploaded_file, encodings=['latin-1']):
         """Try reading a CSV file with encoding until successful."""
@@ -122,26 +110,11 @@ class PredictaApp:
 
         st.sidebar.divider()
 
-        self.contributor_info()
+        theme.contributor_info()
 
         st.sidebar.markdown("---")
         self.handle_about()
         self.handle_help()
-
-    def contributor_info(self):
-        nafiz_info = {
-            "name": "Ahammad Nafiz",
-            "role": "Curious Learner",
-            "image_url": "https://avatars.githubusercontent.com/u/86776685?s=400&u=82112040d4a196f3d796c1aa4e7112d403c19450&v=4",
-            "linkedin_url": "https://www.linkedin.com/in/ahammad-nafiz/",
-            "github_url": "https://github.com/ahammadnafiz",
-        }
-
-        st.sidebar.write("#### 👨‍💻 Developed by:")
-        st.sidebar.markdown(theme.contributor_card(
-            **nafiz_info,
-        ),
-            unsafe_allow_html=True)
 
     def handle_about(self):
         """Display information about the application."""
@@ -165,7 +138,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
     
     def handle_data_explore(self):
         """Handle data exploration."""
@@ -179,7 +152,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def clean_data(self):
         """Handle missing data imputation."""
@@ -193,7 +166,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def handle_detect_outlier(self):
         """Handle outlier detection."""
@@ -207,7 +180,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def encode_data(self):
         """Handle data encoding."""
@@ -221,7 +194,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
     
     def data_transformer(self):
         """Handle data transformation."""
@@ -235,7 +208,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def feature_importance(self):
         """Handle feature importance analysis."""
@@ -249,7 +222,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
     
     def find_parameter(self):
         """Find best parameter."""
@@ -263,14 +236,14 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def code_editor(self):
         """Launch the code editor."""
         editor = PredictaCodeEditor()
         editor.run_code_editor(self.df)
         self.save_modified_df()
-        self.show_footer()
+        theme.show_footer()
 
     def handle_select_ml_models(self):
         """Handle selection of machine learning models."""
@@ -284,7 +257,7 @@ class PredictaApp:
                 unsafe_allow_html=True,
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
-        self.show_footer()
+        theme.show_footer()
 
     def save_modified_df(self):
         """Save the modified DataFrame to a CSV file."""
@@ -309,7 +282,7 @@ class PredictaApp:
             )
             st.image("assets/uploadfile.png", width=None)  # Removed use_container_width
 
-        self.show_footer()
+        theme.show_footer()
 
     def run(self):
         """Run the Predicta application."""
@@ -351,7 +324,7 @@ if __name__ == "__main__":
         page_icon="⚡",
         initial_sidebar_state="expanded"
     )
-    theme.footer()
+    # theme.footer()
 
     app = PredictaApp()
     app.run()
