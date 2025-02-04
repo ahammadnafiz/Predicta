@@ -300,35 +300,54 @@ class DataAnalyzer:
         """
         Creates a correlation plot for numerical columns.
         """
-        corr_data = self.numeric_data.corr()
 
-        # Create heatmap trace
-        heatmap_trace = go.Heatmap(
-                                x=corr_data.columns,
-                                y=corr_data.index,
-                                z=corr_data.values,
-                                colorscale='Viridis'
-                                )
-
-        # Create layout
-        layout = go.Layout(title='Correlation Plot')
-
-        # Create figure
-        fig = go.Figure(data=[heatmap_trace], layout=layout)
-
-        # Add annotations with correlation coefficients
-        for i in range(len(corr_data)):
-            for j in range(len(corr_data)):
-                fig.add_annotation(x=corr_data.columns[i], y=corr_data.index[j],
-                                text=str(round(corr_data.iloc[j, i], 2)),
-                                showarrow=False)
-
-        if output_path:
-            output = os.path.join(output_path, 'Corr_plot.html')
-            fig.write_html(output)
-            st.write('Figure saved at:', output)
-
-        st.plotly_chart(fig)
+        # Select numerical columns
+        numeric_cols = self.data.select_dtypes(include=['int64', 'float64']).columns
+        
+        if len(numeric_cols) > 1:
+            # Calculate correlation matrix
+            corr_matrix = self.data[numeric_cols].corr()
+            
+            # Create Plotly heatmap with increased size
+            fig = px.imshow(
+                corr_matrix,
+                labels=dict(x="Features", y="Features", color="Correlation"),
+                title="Correlation Matrix Heatmap",
+                color_continuous_scale="RdBu",
+                width=800,  # Increased width
+                height=800  # Increased height
+            )
+            
+            # Add annotations to the heatmap
+            fig.update_traces(
+                text=corr_matrix.round(2),  # Show correlation values with 2 decimal places
+                texttemplate="%{text}",
+                textfont={"size": 12},
+                hoverongaps=False
+            )
+            
+            # Display the heatmap
+            st.plotly_chart(fig)
+            
+            # Calculate and display highest correlations
+            correlations = []
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i):
+                    correlations.append({
+                        'Feature 1': corr_matrix.columns[i],
+                        'Feature 2': corr_matrix.columns[j],
+                        'Correlation': corr_matrix.iloc[i, j]
+                    })
+            
+            # Create DataFrame of correlations and sort by absolute value
+            corr_df = pd.DataFrame(correlations)
+            corr_df = corr_df.sort_values('Correlation', key=abs, ascending=False)
+            
+            # Display top correlations
+            st.write("Top Correlations:")
+            st.dataframe(corr_df)
+        else:
+            st.write("Not enough numerical columns for correlation analysis.")
 
     def _interactive_data_table(self):
         """Displays an interactive data table with Excel-like functionality."""

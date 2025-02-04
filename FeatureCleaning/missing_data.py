@@ -4,6 +4,8 @@ import logging
 import streamlit as st
 from sklearn.impute import SimpleImputer, KNNImputer
 from show_code import ShowCode
+import plotly.express as px
+import plotly.figure_factory as ff
 
 class DataImputer:
     def __init__(self, data):
@@ -96,27 +98,30 @@ class DataImputer:
             self.logger.error(f"Auto-cleaning failed: {str(e)}")
             raise
 
-    def check_missing(self, output_path=None):
+    def check_missing(self):
         """Analyze missing values in the dataset."""
-        try:
-            missing_counts = self.data.isnull().sum()
-            missing_proportions = self.data.isnull().mean()
-            missing_types = self.data.dtypes
+        
+        # Calculate missing values statistics
+        missing = pd.DataFrame({
+            'Missing Values': self.data.isnull().sum(),
+            'Percentage': (self.data.isnull().sum() / len(self.data) * 100).round(2)
+        })
+        missing = missing[missing['Missing Values'] > 0].sort_values('Percentage', ascending=False)
+        
+        if not missing.empty:
+            st.write("Columns with missing values:")
+            st.dataframe(missing)
             
-            result = pd.DataFrame({
-                'total missing': missing_counts,
-                'proportion': missing_proportions,
-                'dtype': missing_types
-            })
-            
-            if output_path:
-                result.to_csv(f"{output_path}/missing_analysis.csv")
-                self.logger.info(f"Missing value analysis saved to {output_path}/missing_analysis.csv")
-            
-            return result
-        except Exception as e:
-            self.logger.error(f"Error analyzing missing values: {str(e)}")
-            raise
+            # Create missing values heatmap
+            fig = px.imshow(
+                self.data.isnull().T,
+                labels=dict(x="Row Index", y="Columns", color="Missing"),
+                title="Missing Values Heatmap",
+                aspect="auto"
+            )
+            st.plotly_chart(fig)
+        else:
+            st.write("No missing values found in the dataset.")
 
     def _drop_columns(self, columns_to_drop):
         """Drops the specified columns from the DataFrame."""
@@ -246,7 +251,7 @@ class DataImputer:
 
     def _handle_check_missing_values(self):
         """Handle the Check Missing Values option in the Streamlit interface."""
-        self._handle_option("Check Missing Values", self.check_missing)
+        self._handle_option("Missing Values Analysis", self.check_missing)
 
     def _handle_drop_columns(self):
         """Handle the Drop Columns option in the Streamlit interface."""
