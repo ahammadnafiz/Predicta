@@ -23,3 +23,6 @@ urllib3
 xgboost
 category_encoders
 imbalanced-learn
+torch
+torchvision
+Pillow
