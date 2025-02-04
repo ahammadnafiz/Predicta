@@ -100,7 +100,7 @@ class ImageModel:
             
             # Display results
             st.subheader("Classification Results")
-            st.image(image, caption="Uploaded Image", use_column_width=True)
+            st.image(image, caption="Uploaded Image")
             
             # Show top 5 predictions
             _, indices = torch.sort(probabilities, descending=True)
@@ -126,7 +126,7 @@ class ImageModel:
             
             # Display results
             st.subheader("Object Detection Results")
-            st.image(results.render()[0], caption="Detection Results", use_column_width=True)
+            st.image(results.render()[0], caption="Detection Results")
             
             # Show detection details
             detections = results.pandas().xyxy[0]
@@ -154,8 +154,8 @@ class ImageModel:
             
             # Display results
             st.subheader("Segmentation Results")
-            st.image(image, caption="Original Image", use_column_width=True)
-            st.image(output_predictions, caption="Segmentation Map", use_column_width=True)
+            st.image(image, caption="Original Image")
+            st.image(output_predictions, caption="Segmentation Map")
             
         except Exception as e:
             st.error(f"Error in segmentation: {str(e)}")
