@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import category_encoders as ce
 from show_code import ShowCode
 
@@ -13,7 +13,7 @@ class DataEncoder:
         self.view_code.set_target_class(DataEncoder)
 
     def label_encoding(self, col):
-        encoder = ce.OrdinalEncoder(cols=[col])
+        encoder = LabelEncoder(cols=[col])
         self.data[col] = encoder.fit_transform(self.data[col])
         return self.data
 

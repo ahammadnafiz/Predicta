@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 import logging
 import streamlit as st
+import plotly.figure_factory as ff
+import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.impute import SimpleImputer, KNNImputer
 from show_code import ShowCode
-import plotly.express as px
-import plotly.figure_factory as ff
 
 class DataImputer:
     def __init__(self, data):
@@ -26,18 +27,7 @@ class DataImputer:
             self.logger.addHandler(logging.StreamHandler())
 
     def auto_clean(self, threshold_missing=0.7, strategy='auto'):
-        """
-        Automatically clean the dataset using a comprehensive approach.
-        
-        Parameters:
-        -----------
-        threshold_missing : float
-            Threshold for dropping columns with missing values (0 to 1)
-        strategy : str
-            'auto': automatically choose best strategy based on data
-            'aggressive': maximum cleaning with data loss
-            'conservative': minimal cleaning to preserve data
-        """
+    
         try:
             st.info("Starting automated cleaning process...")
             
@@ -98,30 +88,37 @@ class DataImputer:
             self.logger.error(f"Auto-cleaning failed: {str(e)}")
             raise
 
-    def check_missing(self):
+    def check_missing(self, output_path=None):
         """Analyze missing values in the dataset."""
-        
-        # Calculate missing values statistics
-        missing = pd.DataFrame({
-            'Missing Values': self.data.isnull().sum(),
-            'Percentage': (self.data.isnull().sum() / len(self.data) * 100).round(2)
-        })
-        missing = missing[missing['Missing Values'] > 0].sort_values('Percentage', ascending=False)
-        
-        if not missing.empty:
-            st.write("Columns with missing values:")
-            st.dataframe(missing)
+        try:
+            missing_counts = self.data.isnull().sum()
+            missing_proportions = self.data.isnull().mean()
+            missing_types = self.data.dtypes
             
-            # Create missing values heatmap
-            fig = px.imshow(
-                self.data.isnull().T,
-                labels=dict(x="Row Index", y="Columns", color="Missing"),
-                title="Missing Values Heatmap",
-                aspect="auto"
-            )
-            st.plotly_chart(fig)
-        else:
-            st.write("No missing values found in the dataset.")
+            result = pd.DataFrame({
+                'total missing': missing_counts,
+                'proportion': missing_proportions,
+                'dtype': missing_types
+            })
+            visualize = st.checkbox('Visualize', False)
+            if visualize:
+                missing_matrix = self.data.isnull().astype(int)  # Convert True/False to 1/0
+                fig = px.imshow(missing_matrix.T,
+                                labels=dict(x="Samples", y="Features", color="Missing"),
+                                color_continuous_scale=[[0, 'white'], [1, 'red']],
+                                title="Missing Values Heatmap")
+                
+                fig.update_layout(autosize=True, height=600)
+                st.plotly_chart(fig)
+            
+            if output_path:
+                result.to_csv(f"{output_path}/missing_analysis.csv")
+                self.logger.info(f"Missing value analysis saved to {output_path}/missing_analysis.csv")
+            
+            return result
+        except Exception as e:
+            self.logger.error(f"Error analyzing missing values: {str(e)}")
+            raise
 
     def _drop_columns(self, columns_to_drop):
         """Drops the specified columns from the DataFrame."""
@@ -251,7 +248,7 @@ class DataImputer:
 
     def _handle_check_missing_values(self):
         """Handle the Check Missing Values option in the Streamlit interface."""
-        self._handle_option("Missing Values Analysis", self.check_missing)
+        self._handle_option("Check Missing Values", self.check_missing)
 
     def _handle_drop_columns(self):
         """Handle the Drop Columns option in the Streamlit interface."""

@@ -8,7 +8,6 @@ from plotly.subplots import make_subplots
 import streamlit as st
 from show_code import ShowCode
 
-
 class DataAnalyzer:
     def __init__(self, data):
         if not isinstance(data, pd.DataFrame):
