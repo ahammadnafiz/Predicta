@@ -26,3 +26,4 @@ imbalanced-learn
 torch
 torchvision
 Pillow
+opencv-python
