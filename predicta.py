@@ -3,10 +3,12 @@ import uuid
 import tempfile
 import pandas as pd
 import streamlit as st
+import zipfile
 
 from FeatureCleaning import missing_data, outlier
 from FeatureEngineering import encoding, transform
 from MLModel import predictmlalgo
+from MLModel import predictimagealgo
 from codeditor import PredictaCodeEditor
 from DataExplore import explore, overview
 from FeatureSelection import featureimportance, hyperparameter
@@ -52,14 +54,29 @@ class PredictaApp:
         return None
 
     def file_upload(self):
-        """Handle file upload."""
-        if not os.path.exists(self.modified_df_path):
-            uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-            if uploaded_file is not None:
-                self.df = pd.read_csv(uploaded_file)
-                self.save_modified_df()
-        else:
-            st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
+        file_type = st.sidebar.radio("Select file type", ["CSV", "Single Image"])
+        
+        if file_type == "CSV":
+            if not os.path.exists(self.modified_df_path):
+                uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+                if uploaded_file is not None:
+                    self.df = pd.read_csv(uploaded_file)
+                    self.save_modified_df()
+            else:
+                st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
+        # elif file_type == "Image Dataset":
+        #     uploaded_files = st.file_uploader("Upload Image Dataset", type=["zip"], accept_multiple_files=False)
+        #     if uploaded_files:
+        #         with tempfile.TemporaryDirectory() as tmpdir:
+        #             with zipfile.ZipFile(uploaded_files, 'r') as zip_ref:
+        #                 zip_ref.extractall(tmpdir)
+        #             self.image_data_path = tmpdir
+        #             st.success("Dataset uploaded successfully!")
+        elif file_type == "Single Image":
+            uploaded_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
+            if uploaded_image is not None:
+                self.image_data = uploaded_image
+                st.success("Image uploaded successfully!")
 
     def handle_sidebar(self):
         """Handle the sidebar options."""
@@ -82,6 +99,7 @@ class PredictaApp:
                 "Best Parameter Selector",
                 "PredictaCodeEditor",
                 "Select ML Models",
+                "Select Image Models",
                 "Clear Modified DataSet",
             ],
         )
@@ -105,6 +123,8 @@ class PredictaApp:
             self.feature_importance()
         elif selected_option == "Best Parameter Selector":
             self.find_parameter()
+        elif selected_option == "Select Image Models":
+            self.handle_select_image_models()
         elif selected_option == "Data Transformer":
             self.data_transformer()
 
@@ -259,6 +279,19 @@ class PredictaApp:
             st.image("assets/uploadfile.png", width=None)
         theme.show_footer()
 
+    def handle_select_image_models(self):
+        """Handle selection of image processing models."""
+        if hasattr(self, 'image_data') and self.image_data is not None:
+            model = predictimagealgo.PredictImageAlgo(self.image_data)
+            model.algo()
+        else:
+            st.markdown(
+                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload an image to perform image processing.</div>",
+                unsafe_allow_html=True,
+            )
+            st.image("assets/uploadfile.png", width=None)
+        theme.show_footer()
+
     def save_modified_df(self):
         """Save the modified DataFrame to a CSV file."""
         if self.df is not None:
@@ -302,7 +335,6 @@ if __name__ == "__main__":
         page_icon="⚡",
         initial_sidebar_state="expanded"
     )
-    # theme.footer()
 
     app = PredictaApp()
     app.run()
