@@ -29,3 +29,8 @@ Pillow
 opencv-python
 opencv-python-headless
 ultralytics
+faiss-cpu
+sentence-transformers
+chardet
+transformers
+python-dateutil
