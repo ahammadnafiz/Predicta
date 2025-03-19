@@ -140,22 +140,29 @@ class ChatPredicta:
                 time.sleep(0.5)
                 st.write(response)
 
-
 def main():
     # Initialize app state
     if "vector_store_created" not in st.session_state:
         st.session_state.vector_store_created = False
     if "chat_predicta" not in st.session_state:
         st.session_state.chat_predicta = None
-    
+    if "previous_file_hash" not in st.session_state:
+        st.session_state.previous_file_hash = None
+    if "uploaded_file" not in st.session_state:  # Store uploaded file in session
+        st.session_state.uploaded_file = None
+
     st.set_page_config(layout="centered", page_icon="🤖", page_title="ChatPredicta")
     theme.init_styling()
     st.image("assets/Hero.png")
     st.markdown("---")
     st.sidebar.title("PredictaChat App")
     st.sidebar.markdown("---")
+    
+    # File uploader that updates session state
+    new_upload = st.file_uploader("Choose a CSV file", type="csv")
+    if new_upload:
+        st.session_state.uploaded_file = new_upload
         
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
     groq_api_key = st.sidebar.text_input("Groq API Key", type="password")
     
     # Add buttons for clearing history and vector store
@@ -169,24 +176,43 @@ def main():
             if st.session_state.chat_predicta:
                 if st.session_state.chat_predicta.clear_vector_store():
                     st.session_state.vector_store_created = False
+                    st.session_state.chat_predicta = None
                     st.success("Vector database cleared!")
-                    # Force rerunning the app
-                    st.experimental_rerun()
+                    # Preserve other session state elements
+                    st.rerun()
     
     st.sidebar.markdown("---")
     theme.contributor_info()
     
     if not groq_api_key:
-        st.info('Please add your api key first')
+        st.info('Please add your Groq API key first')
         return
 
-    if uploaded_file and groq_api_key is not None:
-        df = pd.read_csv(uploaded_file)
+    if st.session_state.uploaded_file and groq_api_key is not None:
+        # Check if the uploaded file is new or different
+        current_file_hash = hash(st.session_state.uploaded_file.getvalue())
+        if st.session_state.previous_file_hash != current_file_hash:
+            # File has changed, clear existing data
+            if st.session_state.chat_predicta:
+                st.session_state.chat_predicta.clear_vector_store()
+                st.session_state.vector_store_created = False
+                st.session_state.chat_predicta = None
+            st.session_state.previous_file_hash = current_file_hash
+
+        try:
+            df = pd.read_csv(st.session_state.uploaded_file)
+        except Exception as e:
+            st.error(f"Error reading CSV file: {str(e)}")
+            return
         
-        # Create new ChatPredicta instance only if file changes or vector store is cleared
+        # Create new ChatPredicta instance if necessary
         if not st.session_state.vector_store_created or st.session_state.chat_predicta is None:
-            st.session_state.chat_predicta = ChatPredicta(df, groq_api_key)
-            st.session_state.vector_store_created = True
+            try:
+                st.session_state.chat_predicta = ChatPredicta(df, groq_api_key)
+                st.session_state.vector_store_created = True
+            except Exception as e:
+                st.error(f"Error initializing Predicta: {str(e)}")
+                return
         else:
             # Update API key if it changed
             st.session_state.chat_predicta.groq_api_key = groq_api_key
@@ -197,7 +223,7 @@ def main():
             "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Chat.</div>",
             unsafe_allow_html=True,
         )
-        st.image("assets/uploadfile.png",  width=None)
+        st.image("assets/uploadfile.png", width=None)
         theme.show_footer()
 
 # Register auto-cleanup function when app exits
