@@ -44,7 +44,7 @@ class ChatPredicta:
         self.conversation = LLMChain(
             llm=self.groq_chat,
             prompt=self.prompt,
-            verbose=True,
+            verbose=False,
             memory=self.memory,
         )
     
@@ -202,7 +202,8 @@ def main():
         try:
             df = pd.read_csv(st.session_state.uploaded_file)
         except Exception as e:
-            st.error(f"Error reading CSV file: {str(e)}")
+            st.info(f"Please upload a valid CSV file. {str(e)}")
+            theme.show_footer()
             return
         
         # Create new ChatPredicta instance if necessary
