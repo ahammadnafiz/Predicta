@@ -34,3 +34,4 @@ sentence-transformers
 chardet
 transformers
 python-dateutil
+optuna
