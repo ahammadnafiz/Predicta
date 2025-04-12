@@ -38,3 +38,4 @@ optuna
 plotly
 matplotlib
 langchain-experimental
+tabulate
