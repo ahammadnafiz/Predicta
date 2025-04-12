@@ -276,7 +276,7 @@ class LLMAgent:
         try:
             self.llm = ChatGroq(
                 groq_api_key=self.groq_api_key,
-                model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+                model_name="qwen-2.5-coder-32b",
                 temperature=0
             )
             return True
