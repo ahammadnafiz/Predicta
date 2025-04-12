@@ -317,19 +317,49 @@ class DataAnalysisAgent:
     
     Action: python_repl_ast
     Action Input: 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+    **ALWAYS include these standard imports**:
+   ```python
+   import pandas as pd
+   import numpy as np
+   import matplotlib.pyplot as plt
+   import seaborn as sns
+   
+   Visualization recipe guide:
+    Analysis TypeRecommended Code PatternDistributionsns.histplot(df['column'], kde=True)Count/Categorysns.countplot(y=df['column'].sort_values(), color='#3498db')Correlationsns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1)Time Seriessns.lineplot(x='date_column', y='value_column', data=df, marker='o')Comparisonsns.barplot(x='category', y='value', data=df, palette='viridis')Relationshipsns.scatterplot(x='column1', y='column2', hue='category', data=df)Multi-Variablesns.pairplot(df[['col1', 'col2', 'col3']], hue='category')Grouped Analysisdf.groupby('category')['value'].mean().sort_values(ascending=False).plot(kind='bar')
+   
+   Create professional visualizations with:
+
+    Descriptive titles, axis labels, and legends
+    Appropriate color schemes (use colorblind-friendly palettes)
+    Proper figure sizing and layout adjustments
+    Data annotations where helpful
     
-    df['column'].value_counts().plot(kind='bar')
-    plt.title('Title')
-    plt.xlabel('X Label')
-    plt.ylabel('Y Label')
+    Follow this pattern for all visualizations:
+    python# Set styling options
+    plt.figure(figsize=(10, 6))
+    sns.set_style('whitegrid')
+
+    # Create visualization
+    [VISUALIZATION CODE]
+
+    # Add appropriate labels and styling
+    plt.title('Descriptive Title', fontsize=14, fontweight='bold')
+    plt.xlabel('X-Axis Label', fontsize=12)
+    plt.ylabel('Y-Axis Label', fontsize=12)
+    plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    # DO NOT use plt.show()
     
     Your output will be displayed automatically. After using the python_repl_ast tool ONCE, 
     proceed directly to interpreting the results and providing your final answer.
-    """
+    
+    
+    EXECUTION INSTRUCTIONS
+    When generating visualization code, use the python_repl_ast tool with this exact format:
+    Action: python_repl_ast
+    Action Input:
+    [YOUR COMPLETE PYTHON CODE]
+    IMPORTANT: Only attempt to create a visualization ONCE. The framework will display the output automatically.
+"""
     
     def __init__(self, df, response_processor):
         self.df = df
