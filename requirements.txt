@@ -35,3 +35,6 @@ chardet
 transformers
 python-dateutil
 optuna
+plotly
+matplotlib
+langchain-experimental
