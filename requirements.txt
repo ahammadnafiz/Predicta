@@ -1,8 +1,8 @@
 altair
 joblib
-langchain==0.3.14
-langchain-community==0.3.14
-langchain-core==0.3.29
+langchain
+langchain-community
+langchain-core
 langchain-groq
 langchain-text-splitters
 langsmith

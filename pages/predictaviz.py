@@ -14,6 +14,8 @@ from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain_groq import ChatGroq
+# Add model_rebuild call to fix Pydantic model configuration
+ChatGroq.model_rebuild()
 from langchain_experimental.tools import PythonAstREPLTool
 from Theme import theme
 
