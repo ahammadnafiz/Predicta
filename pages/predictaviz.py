@@ -20,181 +20,12 @@ from langchain_experimental.tools import PythonAstREPLTool
 from Theme import theme
 
 
-class CustomPythonAstREPLTool(PythonAstREPLTool):
-    """Custom Python AST REPL Tool that captures and displays matplotlib figures in Streamlit"""
+class CodeUtils:
+    """Utility class for code extraction and execution"""
     
-    def __init__(self, locals=None):
-        super().__init__(locals=locals)
-    
-    def _run(self, query: str) -> str:
-        """Run the query in the Python REPL and capture the result."""
-        # Remove any plt.show() from the query
-        query = re.sub(r'plt\.show\(\)', '', query)
-        
-        try:
-            # Close any existing figures to avoid overlapping plots
-            plt.close('all')
-            
-            # Ensure locals is initialized
-            if self.locals is None:
-                self.locals = {}
-            
-            # Execute the code using parent method
-            result = super()._run(query)
-            
-            # Capture the matplotlib figure if one was created
-            if plt.get_fignums():
-                current_fig = plt.gcf()
-                
-                # Create a placeholder for the figure and display it
-                fig_placeholder = st.empty()
-                fig_placeholder.pyplot(current_fig)
-                
-                # Add a success message to the result
-                result += "\n\nVisualization successfully displayed."
-            else:
-                # No figure was created, likely an error in the code
-                result += "\n\nNo visualization was generated. Check your code for errors."
-                
-            return result
-        
-        except Exception as e:
-            error_message = f"Error executing code: {str(e)}"
-            st.error(error_message)
-            return error_message
-
-
-class LLMVisualizer:
-    """Class to handle data visualization through LLM code generation"""
-    
-    def __init__(self, df):
-        self.df = df
-    
-    def generate_visualization(self, query, llm):
-        """Generate visualization code using LLM based on user query and dataframe columns"""
-        # Create a prompt with column information
-        columns_info = "\n".join([f"- {col} ({self.df[col].dtype})" for col in self.df.columns])
-        
-        visualization_prompt = f"""
-        Generate Python code to visualize the following query: "{query}"
-        
-        The dataframe 'df' has the following columns:
-        {columns_info}
-        
-        Return ONLY valid Python code (using matplotlib or pandas plotting) that will run directly.
-        Include proper labels, titles, and use plt.tight_layout() for better display.
-        Do not include explanations or markdown - just the Python code.
-        """
-        
-        try:
-            # Get code from LLM
-            response = llm.invoke(visualization_prompt)
-            # Extract the actual code from the response
-            code = self.extract_code_from_response(response.content)
-            return code
-        except Exception as e:
-            st.error(f"Error generating visualization code: {str(e)}")
-            return None
-    
-    def extract_code_from_response(self, response):
-        """Extract Python code from LLM response"""
-        # Try to extract code block
-        code_pattern = r"```python\n(.*?)```"
-        code_match = re.search(code_pattern, response, re.DOTALL)
-        
-        if code_match:
-            return code_match.group(1).strip()
-        
-        # If no code block, try to extract all lines that look like code
-        lines = response.split('\n')
-        code_lines = []
-        
-        for line in lines:
-            line = line.strip()
-            # Simple heuristic: likely code lines contain specific patterns
-            if line and (
-                line.startswith('import ') or
-                line.startswith('from ') or
-                'df.' in line or
-                'plt.' in line or
-                '=' in line or
-                line.startswith('fig,') or
-                '.plot' in line
-            ):
-                code_lines.append(line)
-        
-        if code_lines:
-            return '\n'.join(code_lines)
-        
-        # Return the full response if no code can be extracted
-        return response
-    
-    def execute_visualization(self, code):
-        """Execute the generated visualization code"""
-        if not code:
-            return False
-        
-        try:
-            # Remove any plt.show() calls from the code
-            code = re.sub(r'plt\.show\(\)', '', code)
-            
-            # Create a figure for matplotlib to use
-            fig, ax = plt.subplots(figsize=(10, 6))
-            
-            # Add variables to the execution context
-            exec_globals = {
-                'df': self.df,
-                'plt': plt,
-                'np': np,
-                'pd': pd,
-                'ax': ax,
-                'fig': fig
-            }
-            
-            # Execute the code
-            exec(code, exec_globals)
-            
-            # Add some styling improvements
-            plt.tight_layout()
-            
-            # Display the matplotlib figure in Streamlit
-            st.pyplot(fig)
-            return True
-        except Exception as e:
-            st.error(f"Error executing visualization code: {str(e)}")
-            st.code(code, language="python")
-            return False
-
-class ResponseProcessor:
-    """Class to process and execute Python code from agent responses"""
-    
-    def __init__(self, df):
-        self.df = df
-    
-    def process_response(self, response):
-        """Process agent response to execute Python code visualizations."""
-        
-        # Look for Python code in the response
-        python_code = self.extract_python_code(response)
-        
-        if python_code:
-            try:
-                # Execute the Python code directly
-                self.execute_matplotlib_code(python_code)
-                
-                # Clean up response by removing the executed code
-                cleaned_response = self.remove_code_from_response(response, python_code)
-                return cleaned_response
-            except Exception as e:
-                st.error(f"Error executing Python code: {str(e)}")
-        
-        # No Python code found or execution failed
-        return response
-    
-    def extract_python_code(self, response):
-        """Extract Python code from agent response."""
-        # Try different patterns to extract the code
-        
+    @staticmethod
+    def extract_code_from_response(response):
+        """Extract Python code from LLM response using various patterns"""
         # Pattern 1: Code within python code blocks
         pattern1 = r"```python\n(.*?)```"
         match1 = re.search(pattern1, response, re.DOTALL)
@@ -208,7 +39,6 @@ class ResponseProcessor:
             return match2.group(1).strip()
         
         # Pattern 3: Just look for the typical pandas/matplotlib patterns
-        # This is a fallback for less structured code
         if "df[" in response and (".plot" in response or "plt." in response):
             lines = response.split('\n')
             code_lines = []
@@ -231,43 +61,9 @@ class ResponseProcessor:
         
         return None
     
-    def execute_matplotlib_code(self, code):
-        """Execute matplotlib code and display the result in Streamlit."""
-        # Remove any plt.show() calls from the code
-        code = re.sub(r'plt\.show\(\)', '', code)
-        
-        # Create a figure for matplotlib to use
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        # Add variables to the execution context
-        exec_globals = {
-            'df': self.df,
-            'plt': plt,
-            'np': np,
-            'pd': pd,
-            'ax': ax,
-            'fig': fig
-        }
-        
-        # Execute the code
-        exec(code, exec_globals)
-        
-        # Add some styling improvements
-        plt.tight_layout()
-        
-        # Check if we need to rotate x-axis labels (common for categorical data)
-        if hasattr(ax, 'get_xticklabels') and ax.get_xticklabels():
-            longest_label = max([len(str(label.get_text())) for label in ax.get_xticklabels()])
-            if longest_label > 5:
-                plt.xticks(rotation=45, ha='right')
-        
-        # Display the matplotlib figure in Streamlit
-        st.pyplot(fig)
-    
-    def remove_code_from_response(self, response, code):
-        """Remove the executed code from the response text."""
-        # Try different patterns to remove code blocks
-        
+    @staticmethod
+    def remove_code_from_response(response, code):
+        """Remove the executed code from the response text"""
         # Pattern 1: Remove python code blocks
         cleaned = re.sub(r"```python\n.*?```", "", response, flags=re.DOTALL)
         
@@ -278,13 +74,181 @@ class ResponseProcessor:
         cleaned = re.sub(r"\n\n+", "\n\n", cleaned)
         
         return cleaned.strip()
-
-
-class DataAnalysisAgent:
-    """Class to handle LLM agent interactions for data analysis"""
     
-    # System template for the LLM - emphasize generating runnable Python code
-    SYSTEM_TEMPLATE = """
+    @staticmethod
+    def sanitize_code(code):
+        """Clean up code by removing plt.show() calls"""
+        if not code:
+            return code
+        return re.sub(r'plt\.show\(\)', '', code)
+
+
+class VisualizationHandler:
+    """Centralized class to handle all visualization execution"""
+    
+    @staticmethod
+    def get_execution_context(df=None):
+        """Get the standard execution context for Python code"""
+        context = {
+            'plt': plt,
+            'np': np,
+            'pd': pd,
+            'sns': sns,
+        }
+        
+        if df is not None:
+            context['df'] = df
+            
+        return context
+    
+    @staticmethod
+    def execute_visualization_code(code, df=None, display=True):
+        """Execute visualization code and optionally display in Streamlit"""
+        try:
+            # Sanitize code
+            code = CodeUtils.sanitize_code(code)
+            
+            # Create a new figure
+            plt.close('all')
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            # Get execution context
+            exec_globals = VisualizationHandler.get_execution_context(df)
+            exec_globals.update({
+                'ax': ax,
+                'fig': fig
+            })
+            
+            # Execute the code
+            exec(code, exec_globals)
+            
+            # Add styling improvements
+            plt.tight_layout()
+            
+            # Check if we need to rotate x-axis labels
+            if hasattr(ax, 'get_xticklabels') and ax.get_xticklabels():
+                longest_label = max([len(str(label.get_text())) for label in ax.get_xticklabels()])
+                if longest_label > 5:
+                    plt.xticks(rotation=45, ha='right')
+            
+            # Display the figure if requested
+            if display:
+                st.pyplot(fig)
+                
+            return True, "Visualization successfully displayed."
+        except Exception as e:
+            error_message = f"Error executing visualization code: {str(e)}"
+            if display:
+                st.error(error_message)
+                st.code(code, language="python")
+            return False, error_message
+
+
+class CustomPythonAstREPLTool(PythonAstREPLTool):
+    """Custom Python AST REPL Tool that captures and displays matplotlib figures in Streamlit"""
+    
+    def __init__(self, locals=None):
+        super().__init__(locals=locals)
+    
+    def _run(self, query: str) -> str:
+        """Run the query in the Python REPL and capture the result."""
+        try:
+            # Ensure locals is initialized
+            if self.locals is None:
+                self.locals = {}
+            
+            # Execute the code using parent method
+            result = super()._run(query)
+            
+            # Capture the matplotlib figure if one was created
+            if plt.get_fignums():
+                current_fig = plt.gcf()
+                
+                # Create a placeholder for the figure and display it
+                fig_placeholder = st.empty()
+                fig_placeholder.pyplot(current_fig)
+                
+                # Add a success message to the result
+                result += "\n\nVisualization successfully displayed."
+            
+            return result
+        
+        except Exception as e:
+            error_message = f"Error executing code: {str(e)}"
+            st.error(error_message)
+            return error_message
+
+
+class ResponseProcessor:
+    """Class to process and execute Python code from agent responses"""
+    
+    def __init__(self, df):
+        self.df = df
+    
+    def process_response(self, response):
+        """Process agent response to execute Python code visualizations."""
+        
+        # Look for Python code in the response
+        python_code = CodeUtils.extract_code_from_response(response)
+        
+        if python_code:
+            try:
+                # Execute the Python code
+                success, message = VisualizationHandler.execute_visualization_code(python_code, self.df)
+                
+                # Clean up response by removing the executed code
+                cleaned_response = CodeUtils.remove_code_from_response(response, python_code)
+                return cleaned_response
+            except Exception as e:
+                st.error(f"Error executing Python code: {str(e)}")
+        
+        # No Python code found or execution failed
+        return response
+
+
+class LLMVisualizer:
+    """Class to handle data visualization through LLM code generation"""
+    
+    def __init__(self, df):
+        self.df = df
+    
+    def generate_visualization(self, query, llm):
+        """Generate visualization code using LLM based on user query and dataframe columns"""
+        # Create a prompt with column information
+        columns_info = "\n".join([f"- {col} ({self.df[col].dtype})" for col in self.df.columns])
+        
+        visualization_prompt = f"""
+        Generate Python code to visualize the following query: "{query}"
+        
+        The dataframe 'df' has the following columns:
+        {columns_info}
+        
+        Return ONLY valid Python code (using matplotlib, seaborn or pandas plotting) that will run directly.
+        Include proper labels, titles, and use plt.tight_layout() for better display.
+        Do not include explanations or markdown - just the Python code.
+        """
+        
+        try:
+            # Get code from LLM
+            response = llm.invoke(visualization_prompt)
+            # Extract the actual code
+            code = CodeUtils.extract_code_from_response(response.content)
+            return code
+        except Exception as e:
+            st.error(f"Error generating visualization code: {str(e)}")
+            return None
+    
+    def execute_visualization(self, code):
+        """Execute the generated visualization code"""
+        success, message = VisualizationHandler.execute_visualization_code(code, self.df)
+        return success
+
+
+class LLMAgent:
+    """Base class for LLM agents with common functionality"""
+    
+    # Common system template portions
+    COMMON_SYSTEM_TEMPLATE = """
     You are a data analysis and visualization expert that helps users analyze CSV data using Python, pandas, and matplotlib.
     
     You have access to a pandas DataFrame named 'df' with the following columns:
@@ -298,6 +262,34 @@ class DataAnalysisAgent:
     4. Keep your code simple, focused and complete - it will be executed exactly as written.
     5. Include proper labels, titles, and styling in your matplotlib code.
     6. NEVER include plt.show() in your code - Streamlit will display the figure automatically.
+    """
+    
+    def __init__(self, groq_api_key=None):
+        self.groq_api_key = groq_api_key
+        self.llm = None
+    
+    def initialize_llm(self):
+        """Initialize the LLM with API key"""
+        if not self.groq_api_key:
+            return False
+            
+        try:
+            self.llm = ChatGroq(
+                groq_api_key=self.groq_api_key,
+                model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+                temperature=0
+            )
+            return True
+        except Exception as e:
+            st.error(f"Error initializing LLM: {str(e)}")
+            return False
+
+
+class DataAnalysisAgent(LLMAgent):
+    """Class to handle LLM agent interactions for data analysis"""
+    
+    # Extended system template for the data analysis agent
+    SYSTEM_TEMPLATE = LLMAgent.COMMON_SYSTEM_TEMPLATE + """
     7. IMPORTANT: Only attempt to create a visualization ONCE. Do not retry if you don't see the output immediately.
        The visualization will be shown to the user automatically after your code executes.
     8. For common plots:
@@ -323,9 +315,19 @@ class DataAnalysisAgent:
    import numpy as np
    import matplotlib.pyplot as plt
    import seaborn as sns
+   ```
    
    Visualization recipe guide:
-    Analysis TypeRecommended Code PatternDistributionsns.histplot(df['column'], kde=True)Count/Categorysns.countplot(y=df['column'].sort_values(), color='#3498db')Correlationsns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1)Time Seriessns.lineplot(x='date_column', y='value_column', data=df, marker='o')Comparisonsns.barplot(x='category', y='value', data=df, palette='viridis')Relationshipsns.scatterplot(x='column1', y='column2', hue='category', data=df)Multi-Variablesns.pairplot(df[['col1', 'col2', 'col3']], hue='category')Grouped Analysisdf.groupby('category')['value'].mean().sort_values(ascending=False).plot(kind='bar')
+    Analysis Type | Recommended Code Pattern
+    ------------- | -----------------------
+    Distribution | sns.histplot(df['column'], kde=True)
+    Count/Category | sns.countplot(y=df['column'].sort_values(), color='#3498db')
+    Correlation | sns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    Time Series | sns.lineplot(x='date_column', y='value_column', data=df, marker='o')
+    Comparison | sns.barplot(x='category', y='value', data=df, palette='viridis')
+    Relationship | sns.scatterplot(x='column1', y='column2', hue='category', data=df)
+    Multi-Variable | sns.pairplot(df[['col1', 'col2', 'col3']], hue='category')
+    Grouped Analysis | df.groupby('category')['value'].mean().sort_values(ascending=False).plot(kind='bar')
    
    Create professional visualizations with:
 
@@ -361,48 +363,40 @@ class DataAnalysisAgent:
     IMPORTANT: Only attempt to create a visualization ONCE. The framework will display the output automatically.
 """
     
-    def __init__(self, df, response_processor):
+    def __init__(self, df, response_processor, groq_api_key=None):
+        super().__init__(groq_api_key)
         self.df = df
         self.response_processor = response_processor
         self.agent = None
     
-    def setup_agent(self, groq_api_key, f_path):
+    def setup_agent(self, file_path):
         """Set up the CSV agent with Groq LLM."""
         # Create system prompt with dataframe schema
         df_schema = "\n".join([f"- {col} ({self.df[col].dtype})" for col in self.df.columns])
         system_prompt = self.SYSTEM_TEMPLATE.format(df_schema=df_schema)
         
-        try:
-            # Initialize Groq LLM
-            llm = ChatGroq(
-                groq_api_key=groq_api_key,
-                model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-                temperature=0
-            )
+        # Make sure LLM is initialized
+        if not self.llm and not self.initialize_llm():
+            return None
             
+        try:
             # Initialize conversation memory
             memory = ConversationBufferMemory(memory_key="chat_history")
             
             # Create custom Python REPL tool with the dataframe
-            python_repl_tool = CustomPythonAstREPLTool(locals={
-                "df": self.df,
-                "pd": pd,
-                "np": np,
-                "plt": plt,
-                "sns": sns
-            })
+            python_repl_tool = CustomPythonAstREPLTool(locals=VisualizationHandler.get_execution_context(self.df))
             
             # Create CSV agent with Python REPL tool
             self.agent = create_csv_agent(
-                llm, 
-                f_path, 
+                self.llm, 
+                file_path, 
                 verbose=True, 
                 agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
                 handle_parsing_errors=True,
                 memory=memory,
                 prefix=system_prompt,
                 allow_dangerous_code=True,
-                extra_tools=[python_repl_tool]  # Add the custom Python REPL tool
+                extra_tools=[python_repl_tool]
             )
             
             st.success('Ready to analyze your data!')
@@ -466,17 +460,56 @@ class DataAnalysisAgent:
         return question
 
 
+class DataFrameUtils:
+    """Utility class for dataframe operations"""
+    
+    @staticmethod
+    def display_dataframe_info(df):
+        """Display information about the dataframe."""
+        with st.expander("Dataset Details", expanded=False):
+            st.dataframe(df.head())
+            st.write(f"Shape: {df.shape}")
+            
+            # Show column information with types and sample values
+            st.write("**Column Information:**")
+            col_info = []
+            for col in df.columns:
+                # Get column type
+                col_type = df[col].dtype
+                
+                # Get sample values (first 3 non-null values)
+                sample_values = df[col].dropna().head(3).tolist()
+                sample_str = ", ".join([str(val) for val in sample_values])
+                
+                # Check for missing values
+                missing = df[col].isna().sum()
+                missing_pct = (missing / len(df)) * 100
+                
+                # Get unique values count
+                unique_count = df[col].nunique()
+                
+                col_info.append({
+                    "Column": col,
+                    "Type": col_type,
+                    "Sample Values": sample_str,
+                    "Missing": f"{missing} ({missing_pct:.1f}%)",
+                    "Unique Values": unique_count
+                })
+            
+            # Display column info as a table
+            st.table(pd.DataFrame(col_info))
+
+
 class DataApp:
     """Main application class that orchestrates all components"""
     
     def __init__(self):
         self.df = None
         self.file_path = None
-        self.visualizer = None
         self.response_processor = None
         self.analysis_agent = None
         
-    def process_uploaded_file(self, file):
+    def process_uploaded_file(self, file, groq_api_key=None):
         """Process the uploaded CSV file and return dataframe and file path."""
         with st.spinner(text="Loading dataset..."):
             try:
@@ -494,53 +527,17 @@ class DataApp:
                     return None
                 
                 # Display dataframe information
-                self.display_dataframe_info()
+                DataFrameUtils.display_dataframe_info(self.df)
                 
                 # Initialize components
-                self.visualizer = LLMVisualizer(self.df)
                 self.response_processor = ResponseProcessor(self.df)
-                self.analysis_agent = DataAnalysisAgent(self.df, self.response_processor)
+                self.analysis_agent = DataAnalysisAgent(self.df, self.response_processor, groq_api_key)
                 
                 return self.df
                 
             except Exception as e:
                 st.error(f"Error processing file: {str(e)}")
                 return None
-    
-    def display_dataframe_info(self):
-        """Display information about the dataframe."""
-        with st.expander("Dataset Details", expanded=False):
-            st.dataframe(self.df.head())
-            st.write(f"Shape: {self.df.shape}")
-            
-            # Show column information with types and sample values
-            st.write("**Column Information:**")
-            col_info = []
-            for col in self.df.columns:
-                # Get column type
-                col_type = self.df[col].dtype
-                
-                # Get sample values (first 3 non-null values)
-                sample_values = self.df[col].dropna().head(3).tolist()
-                sample_str = ", ".join([str(val) for val in sample_values])
-                
-                # Check for missing values
-                missing = self.df[col].isna().sum()
-                missing_pct = (missing / len(self.df)) * 100
-                
-                # Get unique values count
-                unique_count = self.df[col].nunique()
-                
-                col_info.append({
-                    "Column": col,
-                    "Type": col_type,
-                    "Sample Values": sample_str,
-                    "Missing": f"{missing} ({missing_pct:.1f}%)",
-                    "Unique Values": unique_count
-                })
-            
-            # Display column info as a table
-            st.table(pd.DataFrame(col_info))
     
     def run(self):
         """Run the main application"""
@@ -564,7 +561,7 @@ class DataApp:
         
         # Process file if uploaded
         if uploaded_file and (self.df is None or uploaded_file.name != getattr(st.session_state, 'last_file', None)):
-            self.process_uploaded_file(uploaded_file)
+            self.process_uploaded_file(uploaded_file, groq_api_key)
             st.session_state.last_file = uploaded_file.name if self.df is not None else None
             
             # Reset chat history when new file is uploaded
@@ -573,11 +570,10 @@ class DataApp:
         # Main app flow
         if self.df is not None and groq_api_key:
             # Setup agent if not already set up
-            if self.analysis_agent.agent is None:
-                self.analysis_agent.setup_agent(groq_api_key, self.file_path)
-            
-            # Display dataset
-            # self.visualizer.display_dataset()
+            if self.analysis_agent and self.analysis_agent.agent is None:
+                # Update API key if changed
+                self.analysis_agent.groq_api_key = groq_api_key
+                self.analysis_agent.setup_agent(self.file_path)
             
             # Display chat messages
             for message in st.session_state.messages:
@@ -585,7 +581,7 @@ class DataApp:
                     st.write(message["content"])
             
             # Get user input
-            prompt = self.analysis_agent.display_question_input()
+            prompt = self.analysis_agent.display_question_input() if self.analysis_agent else None
             
             # Process user input
             if prompt:
@@ -598,7 +594,7 @@ class DataApp:
                 
                 # Display assistant response
                 with st.chat_message("assistant"):
-                    if self.analysis_agent.agent:
+                    if self.analysis_agent and self.analysis_agent.agent:
                         response = self.analysis_agent.handle_chat_input(prompt)
                         # Add assistant response to chat history
                         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -609,7 +605,6 @@ class DataApp:
         elif self.df is not None and not groq_api_key:
             # Display message when API key is missing
             st.warning("Please enter your Groq API key to analyze the data.")
-            # self.visualizer.display_dataset()
             theme.show_footer()
             
         elif not uploaded_file:
@@ -620,9 +615,10 @@ class DataApp:
                 Upload a CSV file and enter your Groq API key to start analyzing your data with AI.
                 
                 ### Features:
-                - **Ask Questions** about your data in natural language
-                - **Generate Visualizations** automatically
-                - **Get Insights** from your data with AI-powered analysis
+                - **Intelligent Visualizations**: Generate insightful charts and graphs automatically
+                - **Natural Language Queries**: Ask questions about your data in plain English
+                - **Advanced Data Analysis**: Get deep insights from your data visualized instantly
+                - **AI-Powered Exploration**: Let AI find patterns and trends in your data
                 
                 Get started by uploading a CSV file in the sidebar.
             """)
