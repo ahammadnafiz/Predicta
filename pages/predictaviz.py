@@ -277,7 +277,7 @@ class LLMAgent:
             self.llm = ChatGroq(
                 groq_api_key=self.groq_api_key,
                 model_name="qwen-2.5-coder-32b",
-                temperature=0
+                temperature=0.6
             )
             return True
         except Exception as e:
