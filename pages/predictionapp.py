@@ -16,10 +16,21 @@ class PredictionApp:
         st.image("assets/Prediction app.png")
     
     def load_model(self, model_file):
-        self.model = joblib.load(model_file)
+        try:
+            self.model = joblib.load(model_file)
+            st.success("Model loaded successfully!")
+        except Exception as e:
+            st.error(f"Error loading model: {str(e)}")
+            self.model = None
 
     def load_preprocessed_data(self, dataset_file):
-        self.preprocessed_data = pd.read_csv(dataset_file)
+        try:
+            self.preprocessed_data = pd.read_csv(dataset_file)
+            st.success("Dataset loaded successfully!")
+        except Exception as e:
+            st.error(f"Error loading dataset: {str(e)}")
+            st.warning("Please check the format of your CSV file and try again.")
+            self.preprocessed_data = None
 
     def show_uploaded_data(self):
         st.markdown(
@@ -48,12 +59,25 @@ class PredictionApp:
         return input_values
 
     def make_prediction(self, input_data):
-        prediction = self.model.predict(input_data)
-        return prediction
+        try:
+            if self.model is None:
+                st.error("No model loaded. Please upload a valid model first.")
+                return None
+                
+            prediction = self.model.predict(input_data)
+            return prediction
+        except Exception as e:
+            st.error(f"Error making prediction: {str(e)}")
+            st.warning("This could be due to incompatible feature formats or missing values. Please check your input data.")
+            return None
 
     def display_prediction_result(self, prediction):
-        st.subheader("Prediction Result")
-        st.write(prediction)
+        if prediction is not None:
+            st.subheader("Prediction Result")
+            st.write(prediction)
+            st.success("Prediction completed successfully!")
+        else:
+            st.error("Could not generate prediction. Please check the error messages above.")
 
     def run(self):
         self.show_hero_image()
@@ -71,28 +95,35 @@ class PredictionApp:
         
         theme.contributor_info()
 
-        if model_file and dataset_file:
-            self.load_model(model_file)
-            self.load_preprocessed_data(dataset_file)
-            self.show_uploaded_data()
+        try:
+            if model_file and dataset_file:
+                self.load_model(model_file)
+                self.load_preprocessed_data(dataset_file)
+                
+                if self.preprocessed_data is not None:
+                    self.show_uploaded_data()
 
-            feature_columns = self.select_features()
+                    feature_columns = self.select_features()
 
-            if feature_columns and self.target_column:
-                input_values = self.input_feature_values(feature_columns)
+                    if feature_columns and self.target_column:
+                        input_values = self.input_feature_values(feature_columns)
 
-                if st.button("Make Prediction"):
-                    input_data = pd.DataFrame([input_values])
-                    prediction = self.make_prediction(input_data)
-                    self.display_prediction_result(prediction)
+                        if st.button("Make Prediction"):
+                            input_data = pd.DataFrame([input_values])
+                            prediction = self.make_prediction(input_data)
+                            self.display_prediction_result(prediction)
+                    else:
+                        st.warning("Please select at least one feature column and a target column.")
             else:
-                st.warning("Please select at least one feature column and a target column.")
-        else:
-            st.markdown(
-                "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Explore.</div>",
-                unsafe_allow_html=True,
-            )
-            st.image("assets/uploadfile.png", width=None)
+                st.markdown(
+                    "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset and model to make predictions.</div>",
+                    unsafe_allow_html=True,
+                )
+                st.image("assets/uploadfile.png", width=None)
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {str(e)}")
+            st.warning("Please reload the page and try again. If the issue persists, check your data and model compatibility.")
+            
         theme.show_footer()
 
 if __name__ == "__main__":

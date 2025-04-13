@@ -37,8 +37,9 @@ class PredictaApp:
     def show_hero_image(self):
         """Display the hero image."""
         st.image("assets/Hero.png")
+        
 
-    def read_csv_with_encoding(self, uploaded_file, encodings=['latin-1']):
+    def read_csv_with_encoding(self, uploaded_file, encodings=['utf-8', 'latin-1', 'ISO-8859-1']):
         """Try reading a CSV file with encoding until successful."""
         for encoding in encodings:
             try:
@@ -47,10 +48,10 @@ class PredictaApp:
             except UnicodeDecodeError:
                 continue
             except Exception as e:
-                st.info(f"Error occurred while reading with encoding {encoding}: {e}")
+                st.error(f"Error occurred while reading with encoding {encoding}: {e}")
                 return None
 
-        st.info(f"Failed to read CSV file with the specified encodings.")
+        st.error(f"Failed to read CSV file with the specified encodings. Please check your file format.")
         return None
 
     def file_upload(self):
@@ -60,23 +61,23 @@ class PredictaApp:
             if not os.path.exists(self.modified_df_path):
                 uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
                 if uploaded_file is not None:
-                    self.df = pd.read_csv(uploaded_file)
-                    self.save_modified_df()
+                    try:
+                        self.df = self.read_csv_with_encoding(uploaded_file)
+                        if self.df is not None:
+                            self.save_modified_df()
+                            st.success("CSV file successfully loaded!")
+                    except Exception as e:
+                        st.error(f"Error loading the CSV file: {str(e)}")
             else:
                 st.warning("A modified DataFrame already exists. Please clear the existing DataFrame before uploading a new one.")
-        # elif file_type == "Image Dataset":
-        #     uploaded_files = st.file_uploader("Upload Image Dataset", type=["zip"], accept_multiple_files=False)
-        #     if uploaded_files:
-        #         with tempfile.TemporaryDirectory() as tmpdir:
-        #             with zipfile.ZipFile(uploaded_files, 'r') as zip_ref:
-        #                 zip_ref.extractall(tmpdir)
-        #             self.image_data_path = tmpdir
-        #             st.success("Dataset uploaded successfully!")
         elif file_type == "Single Image":
             uploaded_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
             if uploaded_image is not None:
-                self.image_data = uploaded_image
-                st.success("Image uploaded successfully!")
+                try:
+                    self.image_data = uploaded_image
+                    st.success("Image uploaded successfully!")
+                except Exception as e:
+                    st.error(f"Error loading the image: {str(e)}")
 
     def handle_sidebar(self):
         """Handle the sidebar options."""
@@ -268,9 +269,13 @@ class PredictaApp:
     def handle_select_ml_models(self):
         """Handle selection of machine learning models."""
         if self.df is not None:
-            model = predictmlalgo.PredictAlgo(self.df)
-            model.algo()
-            self.save_modified_df()
+            try:
+                model = predictmlalgo.PredictAlgo(self.df)
+                model.algo()
+                self.save_modified_df()
+            except Exception as e:
+                st.error(f"Error occurred while running ML models: {str(e)}")
+                st.warning("Please check your dataset for compatibility with selected models.")
         else:
             st.markdown(
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload a dataset to Perform Prediction.</div>",
@@ -282,8 +287,12 @@ class PredictaApp:
     def handle_select_image_models(self):
         """Handle selection of image processing models."""
         if hasattr(self, 'image_data') and self.image_data is not None:
-            model = predictimagealgo.PredictImageAlgo(self.image_data)
-            model.algo()
+            try:
+                model = predictimagealgo.PredictImageAlgo(self.image_data)
+                model.algo()
+            except Exception as e:
+                st.error(f"Error occurred while processing the image: {str(e)}")
+                st.warning("The image processing failed. Please try with a different image or model.")
         else:
             st.markdown(
                 "<div style='text-align: center; margin-top: 20px; margin-bottom: 20px; font-size: 15px;'>Please upload an image to perform image processing.</div>",
@@ -295,12 +304,20 @@ class PredictaApp:
     def save_modified_df(self):
         """Save the modified DataFrame to a CSV file."""
         if self.df is not None:
-            self.df.to_csv(self.modified_df_path, index=False)
+            try:
+                self.df.to_csv(self.modified_df_path, index=False)
+            except Exception as e:
+                st.error(f"Error saving the dataset: {str(e)}")
+                st.warning("Your changes might not be saved. Please check disk space or permissions.")
 
     def load_modified_df(self):
         """Load the modified DataFrame from a CSV file."""
         if os.path.exists(self.modified_df_path):
-            self.df = pd.read_csv(self.modified_df_path)
+            try:
+                self.df = pd.read_csv(self.modified_df_path)
+            except Exception as e:
+                st.error(f"Error loading the saved dataset: {str(e)}")
+                self.df = None
 
     def clear_modified_df(self):
         """Clear the modified DataFrame."""
