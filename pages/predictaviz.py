@@ -14,10 +14,12 @@ from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain_groq import ChatGroq
-# Add model_rebuild call to fix Pydantic model configuration
-ChatGroq.model_rebuild()
 from langchain_experimental.tools import PythonAstREPLTool
 from Theme import theme
+
+# Rebuild the ChatGroq model to fix Pydantic model configuration
+# This needs to be after all imports
+ChatGroq.model_rebuild()
 
 
 class CodeUtils:
@@ -420,7 +422,7 @@ class DataAnalysisAgent(LLMAgent):
                 st.warning(f"Got an error: {error_msg}")
                 
                 # Extract the LLM output from the error if possible
-                if "Could not parse LLM output:" in error_msg:
+                if "Could not parse LLM output:" in error_msg or "Parsing LLM output produced both a final answer and a parse-able action" in error_msg:
                     # Try to extract the actual output from the error message
                     output_start = error_msg.find("`") + 1
                     output_end = error_msg.rfind("`")
