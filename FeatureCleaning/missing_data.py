@@ -4,9 +4,9 @@ import logging
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.impute import SimpleImputer, KNNImputer, IterativeImputer
 from show_code import ShowCode
-from sklearn.impute import IterativeImputer
+from sklearn.experimental import enable_iterative_imputer
 from scipy import stats
 
 class DataImputer:
