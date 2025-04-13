@@ -19,12 +19,64 @@ class DataImputer:
         self.view_code.set_target_class(DataImputer)
         self._setup_logger()
         
+        # Add log container for collecting messages
+        self.log_messages = []
+
     def _setup_logger(self):
         """Set up logging configuration"""
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         if not self.logger.handlers:
             self.logger.addHandler(logging.StreamHandler())
+
+    def log_info(self, message):
+        """Add info message to log container and log it to the file system"""
+        self.log_messages.append({"type": "info", "message": message})
+        self.logger.info(message)
+        
+    def log_warning(self, message):
+        """Add warning message to log container and log it to the file system"""
+        self.log_messages.append({"type": "warning", "message": message})
+        self.logger.warning(message)
+        
+    def log_error(self, message):
+        """Add error message to log container and log it to the file system"""
+        self.log_messages.append({"type": "error", "message": message})
+        self.logger.error(message)
+        
+    def display_log_container(self):
+        """Display all collected log messages in a container box"""
+        if not self.log_messages:
+            return
+            
+        with st.expander("📋 Log Messages", expanded=True):
+            # Create separate sections for different message types
+            info_messages = [msg for msg in self.log_messages if msg['type'] == 'info']
+            warning_messages = [msg for msg in self.log_messages if msg['type'] == 'warning']
+            error_messages = [msg for msg in self.log_messages if msg['type'] == 'error']
+            
+            # Display error messages first (most critical)
+            if error_messages:
+                st.markdown("### ❌ Errors")
+                for msg in error_messages:
+                    st.error(msg['message'])
+            
+            # Display warnings next
+            if warning_messages:
+                st.markdown("### ⚠️ Warnings")
+                for msg in warning_messages:
+                    st.warning(msg['message'])
+            
+            # Display info messages last
+            if info_messages:
+                st.markdown("### ℹ️ Information")
+                for msg in info_messages:
+                    st.info(msg['message'])
+            
+            # Provide option to clear log
+            if st.button("Clear Log"):
+                self.log_messages = []
+                st.experimental_rerun()
 
     def auto_clean(self, threshold_missing=0.7, strategy='auto'):
     

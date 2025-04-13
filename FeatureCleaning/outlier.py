@@ -16,7 +16,58 @@ class OutlierDetector:
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
         
+        # Add log container for collecting messages
+        self.log_messages = []
+
+    def log_info(self, message):
+        """Add info message to log container and log it to the file system"""
+        self.log_messages.append({"type": "info", "message": message})
+        self.logger.info(message)
         
+    def log_warning(self, message):
+        """Add warning message to log container and log it to the file system"""
+        self.log_messages.append({"type": "warning", "message": message})
+        self.logger.warning(message)
+        
+    def log_error(self, message):
+        """Add error message to log container and log it to the file system"""
+        self.log_messages.append({"type": "error", "message": message})
+        self.logger.error(message)
+        
+    def display_log_container(self):
+        """Display all collected log messages in a container box"""
+        if not self.log_messages:
+            return
+            
+        with st.expander("📋 Log Messages", expanded=True):
+            # Create separate sections for different message types
+            info_messages = [msg for msg in self.log_messages if msg['type'] == 'info']
+            warning_messages = [msg for msg in self.log_messages if msg['type'] == 'warning']
+            error_messages = [msg for msg in self.log_messages if msg['type'] == 'error']
+            
+            # Display error messages first (most critical)
+            if error_messages:
+                st.markdown("### ❌ Errors")
+                for msg in error_messages:
+                    st.error(msg['message'])
+            
+            # Display warnings next
+            if warning_messages:
+                st.markdown("### ⚠️ Warnings")
+                for msg in warning_messages:
+                    st.warning(msg['message'])
+            
+            # Display info messages last
+            if info_messages:
+                st.markdown("### ℹ️ Information")
+                for msg in info_messages:
+                    st.info(msg['message'])
+            
+            # Provide option to clear log
+            if st.button("Clear Log"):
+                self.log_messages = []
+                st.experimental_rerun()
+
     def outlier_detect_IQR(self, data, col, threshold=0.05):
         """Detect outliers using the Interquartile Range (IQR) method."""
         try:
@@ -56,17 +107,17 @@ class OutlierDetector:
         except KeyError as e:
             st.error(f"Column Error: Column '{col}' not found in the dataframe")
             st.info("Please select a valid column from your dataset")
-            self.logger.error(f"Column not found: {str(e)}")
+            self.log_error(f"Column not found: {str(e)}")
             return [], ()
         except ValueError as e:
             st.error(f"Value Error: {str(e)}")
             st.info("The IQR method requires numeric data. Make sure the selected column contains numeric values")
-            self.logger.error(f"Value error during IQR outlier detection: {str(e)}")
+            self.log_error(f"Value error during IQR outlier detection: {str(e)}")
             return [], ()
         except Exception as e:
             st.error(f"An unexpected error occurred during outlier detection: {str(e)}")
             st.info("Please check your data quality and try again")
-            self.logger.error(f"Unexpected error during IQR outlier detection: {str(e)}")
+            self.log_error(f"Unexpected error during IQR outlier detection: {str(e)}")
             return [], ()
 
     def outlier_detect_mean_std(self, data, col, threshold=3):
@@ -101,17 +152,17 @@ class OutlierDetector:
         except KeyError as e:
             st.error(f"Column Error: Column '{col}' not found in the dataframe")
             st.info("Please select a valid column from your dataset")
-            self.logger.error(f"Column not found: {str(e)}")
+            self.log_error(f"Column not found: {str(e)}")
             return [], ()
         except ValueError as e:
             st.error(f"Value Error: {str(e)}")
             st.info("Mean-Std method requires numeric data. Make sure the selected column contains numeric values")
-            self.logger.error(f"Value error during Mean-Std outlier detection: {str(e)}")
+            self.log_error(f"Value error during Mean-Std outlier detection: {str(e)}")
             return [], ()
         except Exception as e:
             st.error(f"An unexpected error occurred during outlier detection: {str(e)}")
             st.info("Please check your data quality and try again")
-            self.logger.error(f"Unexpected error during Mean-Std outlier detection: {str(e)}")
+            self.log_error(f"Unexpected error during Mean-Std outlier detection: {str(e)}")
             return [], ()
 
     def outlier_detect_MAD(self, data, col, threshold=3.5):
@@ -143,7 +194,7 @@ class OutlierDetector:
         except Exception as e:
             st.write("An error occurred while processing your request. Please check your input data and try again.")
             # Log the error for debugging purposes
-            self.logger.error("An error occurred while detecting outliers: %s", str(e))
+            self.log_error("An error occurred while detecting outliers: %s", str(e))
             return [], ()
 
     def outlier_detect_LOF(self, data, cols, n_neighbors=20, contamination=0.1):
@@ -243,17 +294,17 @@ class OutlierDetector:
         except KeyError as e:
             st.error(f"Column Error: {str(e)}")
             st.info("Please select valid columns from your dataset")
-            self.logger.error(f"Column not found: {str(e)}")
+            self.log_error(f"Column not found: {str(e)}")
             return []
         except ValueError as e:
             st.error(f"Value Error: {str(e)}")
             st.info("The LOF method requires numeric data. Make sure all selected columns contain numeric values")
-            self.logger.error(f"Value error during LOF outlier detection: {str(e)}")
+            self.log_error(f"Value error during LOF outlier detection: {str(e)}")
             return []
         except Exception as e:
             st.error(f"An unexpected error occurred during LOF outlier detection: {str(e)}")
             st.info("Please check your data quality and try again")
-            self.logger.error(f"Unexpected error during LOF outlier detection: {str(e)}")
+            self.log_error(f"Unexpected error during LOF outlier detection: {str(e)}")
             return []
 
     def windsorization(self, data, col, para, strategy='both'):
@@ -268,7 +319,7 @@ class OutlierDetector:
                 data_copy.loc[data_copy[col] < para[1], col] = para[1]
             return data_copy
         except Exception as e:
-            self.logger.error("An error occurred while performing windsorization: %s", str(e))
+            self.log_error("An error occurred while performing windsorization: %s", str(e))
             raise
 
     def drop_outlier(self, outlier_index):
@@ -276,7 +327,7 @@ class OutlierDetector:
             self.data = self.data.loc[~self.data.index.isin(outlier_index)]
             return self.data
         except Exception as e:
-            self.logger.error("An error occurred while dropping outliers: %s", str(e))
+            self.log_error("An error occurred while dropping outliers: %s", str(e))
             raise
 
 
@@ -317,6 +368,7 @@ class OutlierDetector:
         elif option == "Drop Outliers":
             self._handle_drop_outliers()
 
+        self.display_log_container()
         return self.data
 
     def _handle_option(self, option, function, **kwargs):

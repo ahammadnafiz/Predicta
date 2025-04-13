@@ -38,11 +38,29 @@ class ClassificationModel:
         self.data = df
         logger.info(f"Dataset loaded with shape: {self.data.shape}")
         
+        # Add log container for collecting messages
+        self.log_messages = []
+        
         # Perform initial data validation
         self.validate_dataset()
         
         # Convert data types if needed
         self.df = self.convert_to_float(self.data).select_dtypes(include='number')
+
+    def log_info(self, message):
+        """Add info message to log container and log it to the file system"""
+        self.log_messages.append({"type": "info", "message": message})
+        logger.info(message)
+        
+    def log_warning(self, message):
+        """Add warning message to log container and log it to the file system"""
+        self.log_messages.append({"type": "warning", "message": message})
+        logger.warning(message)
+        
+    def log_error(self, message):
+        """Add error message to log container and log it to the file system"""
+        self.log_messages.append({"type": "error", "message": message})
+        logger.error(message)
 
     def validate_dataset(self):
         """
@@ -51,7 +69,7 @@ class ClassificationModel:
         # Check if dataframe is empty
         if self.data.empty:
             message = "The provided dataset is empty."
-            logger.error(message)
+            self.log_error(message)
             st.error(message)
             return False
             
@@ -60,7 +78,7 @@ class ClassificationModel:
         if missing_values.sum() > 0:
             columns_with_missing = missing_values[missing_values > 0]
             message = f"Dataset contains missing values in {len(columns_with_missing)} columns"
-            logger.warning(message)
+            self.log_warning(message)
             
             # Display detailed information about missing values
             st.warning(message)
@@ -77,7 +95,7 @@ class ClassificationModel:
         categorical_cols = self.data.select_dtypes(include=['object', 'category']).columns.tolist()
         if categorical_cols:
             message = f"Dataset contains {len(categorical_cols)} categorical columns that may need encoding"
-            logger.info(message)
+            self.log_info(message)
             st.info(message)
             st.info(f"Categorical columns: {', '.join(categorical_cols)}")
             st.info("Consider encoding categorical features using techniques in the FeatureEngineering section.")
@@ -92,7 +110,7 @@ class ClassificationModel:
         
         if constant_cols:
             message = f"Found {len(constant_cols)} columns with low variance (>95% same value)"
-            logger.warning(message)
+            self.log_warning(message)
             st.warning(message)
             for col, pct in constant_cols:
                 st.info(f"Column '{col}' has {pct:.2%} of the same value")
@@ -111,14 +129,14 @@ class ClassificationModel:
         missing_features = [f for f in features if f not in self.data.columns]
         if missing_features:
             message = f"Selected features not found in dataset: {', '.join(missing_features)}"
-            logger.error(message)
+            self.log_error(message)
             st.error(message)
             valid = False
         
         # Check if target exists in dataframe
         if target not in self.data.columns:
             message = f"Target variable '{target}' not found in dataset"
-            logger.error(message)
+            self.log_error(message)
             st.error(message)
             valid = False
             
@@ -129,7 +147,7 @@ class ClassificationModel:
         cat_features = [f for f in features if self.data[f].dtype == 'object' or self.data[f].dtype == 'category']
         if cat_features:
             message = f"Selected features contain categorical data: {', '.join(cat_features)}"
-            logger.warning(message)
+            self.log_warning(message)
             st.warning(message)
             st.info("Categorical features will be attempted to be converted to numeric. Consider encoding them properly using techniques in FeatureEngineering section.")
             
@@ -138,7 +156,7 @@ class ClassificationModel:
         features_with_missing = missing_in_features[missing_in_features > 0]
         if not features_with_missing.empty:
             message = f"Selected features have missing values in {len(features_with_missing)} columns"
-            logger.warning(message)
+            self.log_warning(message)
             st.warning(message)
             for col, count in features_with_missing.items():
                 pct = count / len(self.data) * 100
@@ -149,7 +167,7 @@ class ClassificationModel:
         missing_in_target = self.data[target].isnull().sum()
         if missing_in_target > 0:
             message = f"Target variable '{target}' has {missing_in_target} missing values ({missing_in_target/len(self.data)*100:.2f}%)"
-            logger.error(message)
+            self.log_error(message)
             st.error(message)
             st.info("Missing values in target variable will be excluded from training, which may bias your model.")
             valid = False
@@ -162,12 +180,12 @@ class ClassificationModel:
                 if numeric_data.isnull().sum() > 0:
                     non_numeric = self.data[feature].iloc[numeric_data.isnull().idxmax()]
                     message = f"Feature '{feature}' contains non-numeric values like '{non_numeric}'"
-                    logger.warning(message)
+                    self.log_warning(message)
                     st.warning(message)
                     st.info(f"Attempting to convert non-numeric values to NaN. You may want to encode these values properly.")
             except Exception as e:
                 message = f"Error checking feature '{feature}': {str(e)}"
-                logger.error(message)
+                self.log_error(message)
                 st.error(message)
         
         # Check if target is suitable for classification
@@ -175,12 +193,12 @@ class ClassificationModel:
             unique_values = self.data[target].nunique()
             if unique_values > 10:  # Arbitrary threshold for classification
                 message = f"Target variable '{target}' has {unique_values} unique values, which may be too many for classification"
-                logger.warning(message)
+                self.log_warning(message)
                 st.warning(message)
                 st.info("Consider whether a regression model might be more appropriate.")
             elif unique_values <= 1:
                 message = f"Target variable '{target}' has only {unique_values} unique value, making classification impossible"
-                logger.error(message)
+                self.log_error(message)
                 st.error(message)
                 valid = False
                 
@@ -200,10 +218,10 @@ class ClassificationModel:
         for col in int_cols:
             try:
                 data[col] = data[col].astype('float')
-                logger.info(f"Successfully converted integer column '{col}' to float")
+                self.log_info(f"Successfully converted integer column '{col}' to float")
             except Exception as e:
                 message = f"Error converting integer column '{col}' to float: {str(e)}"
-                logger.error(message)
+                self.log_error(message)
                 conversion_issues.append((col, str(e)))
         
         # Convert object columns to float where possible
@@ -222,21 +240,21 @@ class ClassificationModel:
                     pct_lost = nan_count / len(numeric_col) * 100
                     if pct_lost > 50:  # If more than 50% would be lost, don't convert
                         message = f"Column '{col}' has {pct_lost:.2f}% non-numeric values. Keeping as categorical."
-                        logger.warning(message)
+                        self.log_warning(message)
                         st.warning(message)
                         continue
                     else:
                         message = f"Column '{col}' converted to numeric with {nan_count} values ({pct_lost:.2f}%) becoming NaN"
-                        logger.warning(message)
+                        self.log_warning(message)
                         st.warning(message)
                 
                 # Apply the conversion
                 data[col] = numeric_col
-                logger.info(f"Successfully converted object column '{col}' to numeric")
+                self.log_info(f"Successfully converted object column '{col}' to numeric")
                 
             except Exception as e:
                 message = f"Error converting object column '{col}': {str(e)}"
-                logger.error(message)
+                self.log_error(message)
                 conversion_issues.append((col, str(e)))
         
         # Report conversion issues if any
@@ -288,6 +306,40 @@ class ClassificationModel:
         # Display the figure using st.pyplot with the figure object
         st.pyplot(fig)
 
+    def display_log_container(self):
+        """Display all collected log messages in a container box"""
+        if not self.log_messages:
+            return
+            
+        with st.expander("📋 Log Messages", expanded=True):
+            # Create separate sections for different message types
+            info_messages = [msg for msg in self.log_messages if msg['type'] == 'info']
+            warning_messages = [msg for msg in self.log_messages if msg['type'] == 'warning']
+            error_messages = [msg for msg in self.log_messages if msg['type'] == 'error']
+            
+            # Display error messages first (most critical)
+            if error_messages:
+                st.markdown("### ❌ Errors")
+                for msg in error_messages:
+                    st.error(msg['message'])
+            
+            # Display warnings next
+            if warning_messages:
+                st.markdown("### ⚠️ Warnings")
+                for msg in warning_messages:
+                    st.warning(msg['message'])
+            
+            # Display info messages last
+            if info_messages:
+                st.markdown("### ℹ️ Information")
+                for msg in info_messages:
+                    st.info(msg['message'])
+            
+            # Provide option to clear log
+            if st.button("Clear Log"):
+                self.log_messages = []
+                st.experimental_rerun()
+
     def logistic_regression(self, C, max_iter):
         features = st.multiselect("Select Feature Columns", self.data.columns)
         target = st.selectbox("Select Target Variable", self.data.columns)
@@ -314,7 +366,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training Logistic Regression with C={C}, max_iter={max_iter}, features={features}, target={target}")
+            self.log_info(f"Training Logistic Regression with C={C}, max_iter={max_iter}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -326,10 +378,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -347,13 +399,13 @@ class ClassificationModel:
                 for warning in w:
                     if "ConvergenceWarning" in str(warning.category):
                         st.warning(f"Model did not converge with max_iter={max_iter}. Consider increasing max_iter.")
-                        logger.warning(f"Convergence warning with max_iter={max_iter}")
+                        self.log_warning(f"Convergence warning with max_iter={max_iter}")
 
             y_pred = pipe.predict(X_test)
 
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -373,7 +425,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_logistic.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -385,7 +437,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during Logistic Regression training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: Check that your data doesn't contain non-numeric values, or use encoding techniques from FeatureEngineering section.")
 
@@ -415,7 +467,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training Random Forest with n_estimators={n_estimators}, max_depth={max_depth}, max_features={max_features}, features={features}, target={target}")
+            self.log_info(f"Training Random Forest with n_estimators={n_estimators}, max_depth={max_depth}, max_features={max_features}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -427,10 +479,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -449,7 +501,7 @@ class ClassificationModel:
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -463,7 +515,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_random_forest.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -475,7 +527,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during Random Forest training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: Check that your data doesn't contain non-numeric values, or use encoding techniques from FeatureEngineering section.")
 
@@ -505,7 +557,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training Decision Tree with max_depth={max_depth}, min_samples_split={min_samples_split}, features={features}, target={target}")
+            self.log_info(f"Training Decision Tree with max_depth={max_depth}, min_samples_split={min_samples_split}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -517,10 +569,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -539,7 +591,7 @@ class ClassificationModel:
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -553,7 +605,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_decision_tree_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -565,7 +617,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during Decision Tree training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: Check that your data doesn't contain non-numeric values, or use encoding techniques from FeatureEngineering section.")
 
@@ -595,7 +647,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training KNN Classifier with n_neighbors={n_neighbors}, algorithm={algorithm}, features={features}, target={target}")
+            self.log_info(f"Training KNN Classifier with n_neighbors={n_neighbors}, algorithm={algorithm}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -607,10 +659,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -629,7 +681,7 @@ class ClassificationModel:
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -643,7 +695,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_knn_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -655,7 +707,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during KNN Classifier training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: KNN is sensitive to the scale of the data. Ensure proper scaling and check for outliers.")
 
@@ -685,7 +737,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training SVC with C={C}, kernel={kernel}, features={features}, target={target}")
+            self.log_info(f"Training SVC with C={C}, kernel={kernel}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -697,10 +749,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -710,7 +762,7 @@ class ClassificationModel:
             # Warn about potential performance issues with large datasets
             if X_train_resampled.shape[0] > 10000:
                 st.warning(f"Training SVM with {X_train_resampled.shape[0]} samples may be slow. Consider using a smaller dataset or a different algorithm.")
-                logger.warning(f"SVM training with large dataset: {X_train_resampled.shape[0]} samples")
+                self.log_warning(f"SVM training with large dataset: {X_train_resampled.shape[0]} samples")
 
             pipe = Pipeline([
                 ('scaler', scaler),
@@ -724,14 +776,14 @@ class ClassificationModel:
             
             if training_time > 5:  # arbitrary threshold for "slow" training
                 st.info(f"Model training took {training_time:.2f} seconds")
-                logger.info(f"SVM training completed in {training_time:.2f} seconds")
+                self.log_info(f"SVM training completed in {training_time:.2f} seconds")
 
             y_pred = pipe.predict(X_test)
 
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -745,7 +797,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_support_vector_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -757,7 +809,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during SVM training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: SVMs are sensitive to the scale of the data and may struggle with non-numeric features. Ensure proper preprocessing.")
 
@@ -787,7 +839,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training Gradient Boosting with n_estimators={n_estimators}, learning_rate={learning_rate}, max_depth={max_depth}, features={features}, target={target}")
+            self.log_info(f"Training Gradient Boosting with n_estimators={n_estimators}, learning_rate={learning_rate}, max_depth={max_depth}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -799,10 +851,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -821,14 +873,14 @@ class ClassificationModel:
             
             if training_time > 5:  # arbitrary threshold for "slow" training
                 st.info(f"Model training took {training_time:.2f} seconds")
-                logger.info(f"Gradient Boosting training completed in {training_time:.2f} seconds")
+                self.log_info(f"Gradient Boosting training completed in {training_time:.2f} seconds")
 
             y_pred = pipe.predict(X_test)
 
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -842,7 +894,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_gradient_boosting_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -854,7 +906,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during Gradient Boosting training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: Gradient Boosting is sensitive to outliers and may struggle with imbalanced data. Consider using SMOTE or adjusting learning_rate.")
 
@@ -884,7 +936,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training AdaBoost with n_estimators={n_estimators}, learning_rate={learning_rate}, features={features}, target={target}")
+            self.log_info(f"Training AdaBoost with n_estimators={n_estimators}, learning_rate={learning_rate}, features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -896,10 +948,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -918,14 +970,14 @@ class ClassificationModel:
             
             if training_time > 5:  # arbitrary threshold for "slow" training
                 st.info(f"Model training took {training_time:.2f} seconds")
-                logger.info(f"AdaBoost training completed in {training_time:.2f} seconds")
+                self.log_info(f"AdaBoost training completed in {training_time:.2f} seconds")
 
             y_pred = pipe.predict(X_test)
 
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -939,7 +991,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_adaboost_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -951,7 +1003,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during AdaBoost training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: AdaBoost may struggle with noisy data. Consider preprocessing your data to remove outliers.")
 
@@ -981,7 +1033,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training XGBoost with n_estimators={n_estimators}, max_depth={max_depth}, learning_rate={learning_rate}, features={features}, target={target}")
+            self.log_info(f"Training XGBoost with n_estimators={n_estimators}, max_depth={max_depth}, learning_rate={learning_rate}, features={features}, target={target}")
             
             # Create train/test split with error handling for target conversion
             try:
@@ -1009,7 +1061,7 @@ class ClassificationModel:
                 
             except Exception as e:
                 message = f"Error preparing data for XGBoost: {str(e)}"
-                logger.error(message)
+                self.log_error(message)
                 st.error(message)
                 return
             
@@ -1019,10 +1071,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -1052,7 +1104,7 @@ class ClassificationModel:
             training_time = (datetime.datetime.now() - start_time).total_seconds()
             if training_time > 5:  # arbitrary threshold for "slow" training
                 st.info(f"Model training took {training_time:.2f} seconds")
-                logger.info(f"XGBoost training completed in {training_time:.2f} seconds")
+                self.log_info(f"XGBoost training completed in {training_time:.2f} seconds")
             
             # Make predictions
             y_pred = xgb_clf.predict(X_test_scaled)
@@ -1064,7 +1116,7 @@ class ClassificationModel:
             # Display evaluation metrics
             accuracy = accuracy_score(y_test_original, y_pred_original)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test_original, y_pred_original, output_dict=True)
@@ -1085,7 +1137,7 @@ class ClassificationModel:
             
             model_file = "trained_model_xgboost_classifier.pkl"
             joblib.dump(model_data, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide download button
             with open(model_file, 'rb') as f:
@@ -1100,7 +1152,7 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during XGBoost training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: XGBoost may fail with categorical data or missing values. Ensure proper preprocessing.")
 
@@ -1130,7 +1182,7 @@ class ClassificationModel:
             use_smote = st.checkbox("Use SMOTE")
             
             # Log the model configuration
-            logger.info(f"Training Stacking Classifier with features={features}, target={target}")
+            self.log_info(f"Training Stacking Classifier with features={features}, target={target}")
             
             # Create train/test split
             X_train, X_test, y_train, y_test = train_test_split(self.data[features], self.data[target], test_size=test_size, random_state=random_state)
@@ -1142,10 +1194,10 @@ class ClassificationModel:
                     smote = SMOTE(random_state=random_state)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     st.info(f"Applied SMOTE: Training set resampled from {X_train.shape[0]} to {X_train_resampled.shape[0]} samples")
-                    logger.info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
+                    self.log_info(f"SMOTE applied successfully. New sample count: {X_train_resampled.shape[0]}")
                 except Exception as e:
                     message = f"SMOTE resampling failed: {str(e)}"
-                    logger.error(message)
+                    self.log_error(message)
                     st.error(message)
                     st.info("Proceeding with original imbalanced data")
                     X_train_resampled, y_train_resampled = X_train, y_train
@@ -1178,14 +1230,14 @@ class ClassificationModel:
             
             if training_time > 10:  # higher threshold for stacking as it's expected to be slower
                 st.info(f"Model training took {training_time:.2f} seconds")
-                logger.info(f"Stacking Classifier training completed in {training_time:.2f} seconds")
+                self.log_info(f"Stacking Classifier training completed in {training_time:.2f} seconds")
 
             y_pred = pipe.predict(X_test)
 
             # Display evaluation metrics
             accuracy = accuracy_score(y_test, y_pred)
             st.write('Accuracy:', accuracy)
-            logger.info(f"Model accuracy: {accuracy:.4f}")
+            self.log_info(f"Model accuracy: {accuracy:.4f}")
             
             # Create classification report
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -1199,7 +1251,7 @@ class ClassificationModel:
             # Save the trained model to a file
             model_file = "trained_model_stacking_classifier.pkl"
             joblib.dump(pipe, model_file)
-            logger.info(f"Model saved to {model_file}")
+            self.log_info(f"Model saved to {model_file}")
 
             # Provide a download button to the user
             st.download_button(
@@ -1211,6 +1263,6 @@ class ClassificationModel:
             
         except Exception as e:
             error_message = f"Error during Stacking Classifier training: {str(e)}"
-            logger.error(error_message)
+            self.log_error(error_message)
             st.error(error_message)
             st.info("Tip: Stacking classifiers are complex and may be sensitive to data issues. Ensure your data is properly preprocessed.")
