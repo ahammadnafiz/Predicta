@@ -14,12 +14,10 @@ from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain_groq import ChatGroq
+# Add model_rebuild call to fix Pydantic model configuration
+ChatGroq.model_rebuild()
 from langchain_experimental.tools import PythonAstREPLTool
 from Theme import theme
-
-# Rebuild the ChatGroq model to fix Pydantic model configuration
-# This needs to be after all imports
-ChatGroq.model_rebuild()
 
 
 class CodeUtils:
@@ -389,9 +387,7 @@ class DataAnalysisAgent(LLMAgent):
             python_repl_tool = CustomPythonAstREPLTool(locals=VisualizationHandler.get_execution_context(self.df))
             
             # Create CSV agent with Python REPL tool
-            from langchain.agents import AgentExecutor
-            
-            agent = create_csv_agent(
+            self.agent = create_csv_agent(
                 self.llm, 
                 file_path, 
                 verbose=True, 
@@ -402,12 +398,6 @@ class DataAnalysisAgent(LLMAgent):
                 allow_dangerous_code=True,
                 extra_tools=[python_repl_tool]
             )
-            
-            # Ensure handle_parsing_errors is correctly applied
-            if isinstance(agent, AgentExecutor):
-                agent.handle_parsing_errors = True
-            
-            self.agent = agent
             
             st.success('Ready to analyze your data!')
             return self.agent
