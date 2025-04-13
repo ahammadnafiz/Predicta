@@ -389,7 +389,9 @@ class DataAnalysisAgent(LLMAgent):
             python_repl_tool = CustomPythonAstREPLTool(locals=VisualizationHandler.get_execution_context(self.df))
             
             # Create CSV agent with Python REPL tool
-            self.agent = create_csv_agent(
+            from langchain.agents import AgentExecutor
+            
+            agent = create_csv_agent(
                 self.llm, 
                 file_path, 
                 verbose=True, 
@@ -400,6 +402,12 @@ class DataAnalysisAgent(LLMAgent):
                 allow_dangerous_code=True,
                 extra_tools=[python_repl_tool]
             )
+            
+            # Ensure handle_parsing_errors is correctly applied
+            if isinstance(agent, AgentExecutor):
+                agent.handle_parsing_errors = True
+            
+            self.agent = agent
             
             st.success('Ready to analyze your data!')
             return self.agent
