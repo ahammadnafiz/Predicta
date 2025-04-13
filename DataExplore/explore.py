@@ -495,8 +495,9 @@ class DataAnalyzer:
             # Convert date column to datetime
             self.data_copy[date_column] = pd.to_datetime(self.data_copy[date_column])
         except Exception as e:
-            st.info("Error: You must use a valid date column for cohort analysis.")
-            st.write(f"Details: {e}")
+            st.error(f"Error: Failed to convert '{date_column}' to datetime format")
+            st.info("Make sure you've selected a valid date column for cohort analysis")
+            st.info(f"Details: {str(e)}")
             return
 
         try:
@@ -505,7 +506,7 @@ class DataAnalyzer:
             self.data_copy['Cohort_Index'] = (self.data_copy[date_column].dt.to_period('M') - self.data_copy['Cohort']).apply(lambda x: x.n)
 
             # Create cohort table
-            cohort_table = self.data_copyx.groupby(['Cohort', 'Cohort_Index'])[value_column].mean().unstack()
+            cohort_table = self.data_copy.groupby(['Cohort', 'Cohort_Index'])[value_column].mean().unstack()
 
             # Ensure cohort sizes are properly indexed
             cohort_sizes = cohort_table.iloc[:, 0]
@@ -521,9 +522,18 @@ class DataAnalyzer:
                             y=retention_table.index.astype(str))
             fig.update_layout(title="Cohort Analysis - Retention Rates")
             st.plotly_chart(fig)
+        except ValueError as e:
+            st.error(f"Value Error: {str(e)}")
+            st.info("Check if your data has the correct format for cohort analysis")
+            return
+        except KeyError as e:
+            st.error(f"Key Error: Column '{e}' not found")
+            st.info("Make sure all selected columns exist in the dataset")
+            return
         except Exception as e:
-            st.info("An error occurred during the cohort analysis. Please ensure your data is formatted correctly and try again.")
-            st.write(f"Details: {e}")
+            st.error(f"An unexpected error occurred during cohort analysis: {str(e)}")
+            st.info("Check your data format and column selections. The cohort analysis requires valid date format, unique user IDs, and numeric values.")
+            return
 
     def _funnel_analysis(self, stages):
        """

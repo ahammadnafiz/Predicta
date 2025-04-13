@@ -7,6 +7,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score
 from show_code import ShowCode
+import pandas as pd
+from optuna.visualization import plot_param_importances, plot_optimization_history, plot_contour, plot_parallel_coordinate
 
 class BestParam:
     def __init__(self, data):
@@ -14,7 +16,16 @@ class BestParam:
         self.view_code = ShowCode()
         self.view_code.set_target_class(BestParam)
         self.n_trials = 30  # Default number of trials
-    
+        
+        # Initialize custom parameter dictionaries for each model
+        if 'custom_params' not in st.session_state:
+            st.session_state.custom_params = {
+                "Linear Regression": {},
+                "Random Forest Regression": {},
+                "Random Forest Classifier": {},
+                "Gradient Boosting Classifier": {}
+            }
+
     def optuna_search(self, X_train, y_train, create_model, param_distributions, scoring='accuracy', cv=5, n_trials=10):
         """
         Use Optuna to find the best hyperparameters
@@ -42,9 +53,9 @@ class BestParam:
                 if param_config['type'] == 'categorical':
                     params[param_name] = trial.suggest_categorical(param_name, param_config['values'])
                 elif param_config['type'] == 'int':
-                    params[param_name] = trial.suggest_int(param_name, param_config['low'], param_config['high'])
+                    params[param_name] = trial.suggest_int(param_name, param_config['low'], param_config['high'], step=param_config.get('step', 1))
                 elif param_config['type'] == 'float':
-                    params[param_name] = trial.suggest_float(param_name, param_config['low'], param_config['high'])
+                    params[param_name] = trial.suggest_float(param_name, param_config['low'], param_config['high'], step=param_config.get('step', None))
                 elif param_config['type'] == 'loguniform':
                     params[param_name] = trial.suggest_float(param_name, param_config['low'], param_config['high'], log=True)
             
@@ -59,8 +70,9 @@ class BestParam:
                 return np.mean(scores)
         
         # Create and run the study
-        study = optuna.create_study(direction=direction)
-        study.optimize(objective, n_trials=n_trials)
+        study_name = f"study_{scoring}_{n_trials}"
+        study = optuna.create_study(direction=direction, study_name=study_name)
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
         
         # Get the best parameters and create the best model
         best_params = study.best_params
@@ -74,78 +86,679 @@ class BestParam:
         # Store the study in session state for visualization
         if 'current_study' not in st.session_state:
             st.session_state.current_study = study
+        else:
+            st.session_state.current_study = study
         
         # Store the parameter distributions in session state
         st.session_state.param_distributions = param_distributions
         
-        # Visualization using Plotly
-        st.subheader("Parameter Importance")
-        try:
-            # Get parameter importances
-            importances = optuna.importance.get_param_importances(study)
-            
-            # Create a plotly figure for parameter importance
-            param_names = list(importances.keys())
-            importance_values = list(importances.values())
-            
-            fig_importance = go.Figure(data=[
-                go.Bar(x=param_names, y=importance_values)
-            ])
-            
-            fig_importance.update_layout(
-                title="Parameter Importance",
-                xaxis_title="Parameter",
-                yaxis_title="Importance",
-                height=500
-            )
-            
-            st.plotly_chart(fig_importance)
-        except Exception as e:
-            st.write(f"Could not plot parameter importance: {str(e)}")
+        # Advanced visualizations with tabs
+        st.subheader("Optuna Visualizations")
+        tabs = st.tabs(["Parameter Importance", "Optimization History", "Parallel Coordinate", "Contour Plot", "Trial Data"])
         
-        # Plot optimization history
-        st.subheader("Optimization History")
-        try:
-            # Get optimization history
-            values = [trial.value for trial in study.trials]
-            best_values = [study.best_value for _ in range(len(study.trials))]
-            
-            fig_history = go.Figure()
-            
-            # Add value trace
-            fig_history.add_trace(
-                go.Scatter(
-                    x=list(range(len(values))),
-                    y=values,
-                    mode='markers',
-                    name='Trial Value',
-                    marker=dict(color='blue', size=8)
+        with tabs[0]:  # Parameter Importance
+            try:
+                # Get parameter importances
+                importances = optuna.importance.get_param_importances(study)
+                
+                # Create a plotly figure for parameter importance
+                param_names = list(importances.keys())
+                importance_values = list(importances.values())
+                
+                fig_importance = go.Figure(data=[
+                    go.Bar(x=param_names, y=importance_values)
+                ])
+                
+                fig_importance.update_layout(
+                    title="Parameter Importance",
+                    xaxis_title="Parameter",
+                    yaxis_title="Importance",
+                    height=500
                 )
-            )
-            
-            # Add best value trace
-            fig_history.add_trace(
-                go.Scatter(
-                    x=list(range(len(best_values))),
-                    y=best_values,
-                    mode='lines',
-                    name='Best Value',
-                    line=dict(color='red', width=2)
+                
+                st.plotly_chart(fig_importance, use_container_width=True)
+            except Exception as e:
+                st.write(f"Could not plot parameter importance: {str(e)}")
+        
+        with tabs[1]:  # Optimization History
+            try:
+                # Get optimization history
+                values = [trial.value for trial in study.trials]
+                best_values = [study.best_value for _ in range(len(study.trials))]
+                
+                fig_history = go.Figure()
+                
+                # Add value trace
+                fig_history.add_trace(
+                    go.Scatter(
+                        x=list(range(len(values))),
+                        y=values,
+                        mode='markers',
+                        name='Trial Value',
+                        marker=dict(color='blue', size=8)
+                    )
                 )
-            )
-            
-            fig_history.update_layout(
-                title="Optimization History",
-                xaxis_title="Trial",
-                yaxis_title="Objective Value",
-                height=500
-            )
-            
-            st.plotly_chart(fig_history)
-        except Exception as e:
-            st.write(f"Could not plot optimization history: {str(e)}")
+                
+                # Add best value trace
+                fig_history.add_trace(
+                    go.Scatter(
+                        x=list(range(len(best_values))),
+                        y=best_values,
+                        mode='lines',
+                        name='Best Value',
+                        line=dict(color='red', width=2)
+                    )
+                )
+                
+                fig_history.update_layout(
+                    title="Optimization History",
+                    xaxis_title="Trial",
+                    yaxis_title="Objective Value",
+                    height=500
+                )
+                
+                st.plotly_chart(fig_history, use_container_width=True)
+            except Exception as e:
+                st.write(f"Could not plot optimization history: {str(e)}")
+                
+        with tabs[2]:  # Parallel Coordinate Plot
+            try:
+                # Create data for parallel coordinate plot
+                trial_data = []
+                for trial in study.trials:
+                    if trial.state == optuna.trial.TrialState.COMPLETE:
+                        params = trial.params.copy()
+                        params['value'] = trial.value
+                        trial_data.append(params)
+                
+                if trial_data:
+                    df = pd.DataFrame(trial_data)
+                    
+                    fig = go.Figure(data=
+                        go.Parcoords(
+                            line=dict(
+                                color=df['value'],
+                                colorscale='Viridis',
+                                showscale=True
+                            ),
+                            dimensions=[
+                                dict(
+                                    range=[df[col].min(), df[col].max()],
+                                    label=col,
+                                    values=df[col]
+                                ) for col in df.columns
+                            ]
+                        )
+                    )
+                    
+                    fig.update_layout(
+                        title="Parallel Coordinate Plot",
+                        height=600
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.write("Not enough complete trials for parallel coordinate plot")
+            except Exception as e:
+                st.write(f"Could not create parallel coordinate plot: {str(e)}")
+                
+        with tabs[3]:  # Contour Plot
+            try:
+                if len(param_distributions) >= 2:
+                    # Get the two most important parameters
+                    importances = optuna.importance.get_param_importances(study)
+                    top_params = list(importances.keys())[:2] if len(importances) >= 2 else list(param_distributions.keys())[:2]
+                    
+                    # Create data for contour plot
+                    param_x = top_params[0]
+                    param_y = top_params[1]
+                    
+                    x_values = []
+                    y_values = []
+                    objective_values = []
+                    
+                    for trial in study.trials:
+                        if trial.state == optuna.trial.TrialState.COMPLETE and param_x in trial.params and param_y in trial.params:
+                            x_values.append(trial.params[param_x])
+                            y_values.append(trial.params[param_y])
+                            objective_values.append(trial.value)
+                    
+                    if x_values and y_values and objective_values:
+                        fig = go.Figure(data=
+                            go.Contour(
+                                x=x_values,
+                                y=y_values,
+                                z=objective_values,
+                                contours=dict(
+                                    coloring='heatmap',
+                                    showlabels=True
+                                ),
+                                colorscale='Viridis'
+                            )
+                        )
+                        
+                        fig.update_layout(
+                            title=f"Contour Plot: {param_x} vs {param_y}",
+                            xaxis_title=param_x,
+                            yaxis_title=param_y,
+                            height=500
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.write("Not enough data for contour plot")
+                else:
+                    st.write("Need at least 2 parameters for contour plot")
+            except Exception as e:
+                st.write(f"Could not create contour plot: {str(e)}")
+                
+        with tabs[4]:  # Trial Data Table
+            try:
+                trials_data = []
+                for i, trial in enumerate(study.trials):
+                    if trial.state == optuna.trial.TrialState.COMPLETE:
+                        trial_info = {"Trial": i, "Value": trial.value}
+                        trial_info.update(trial.params)
+                        trials_data.append(trial_info)
+                
+                if trials_data:
+                    df = pd.DataFrame(trials_data)
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.write("No completed trials available")
+            except Exception as e:
+                st.write(f"Could not display trial data: {str(e)}")
         
         return best_model
+
+    def customize_param_distributions(self, model_type):
+        """
+        Allow users to customize hyperparameter search spaces
+        """
+        st.subheader("Customize Hyperparameter Search Space")
+        
+        default_params = {}
+        if model_type == "Linear Regression":
+            default_params = {
+                'fit_intercept': {'type': 'categorical', 'values': [True, False]}
+            }
+        elif model_type == "Random Forest Regression":
+            default_params = {
+                'n_estimators': {'type': 'int', 'low': 50, 'high': 300},
+                'max_depth': {'type': 'int', 'low': 5, 'high': 30},
+                'min_samples_split': {'type': 'int', 'low': 2, 'high': 10},
+                'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
+                'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]}
+            }
+        elif model_type == "Random Forest Classifier":
+            default_params = {
+                'n_estimators': {'type': 'int', 'low': 50, 'high': 300},
+                'max_depth': {'type': 'int', 'low': 5, 'high': 30},
+                'min_samples_split': {'type': 'int', 'low': 2, 'high': 10},
+                'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
+                'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]},
+                'class_weight': {'type': 'categorical', 'values': ['balanced', None]}
+            }
+        elif model_type == "Gradient Boosting Classifier":
+            default_params = {
+                'n_estimators': {'type': 'int', 'low': 50, 'high': 300},
+                'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                'max_depth': {'type': 'int', 'low': 3, 'high': 20},
+                'min_samples_split': {'type': 'int', 'low': 2, 'high': 10},
+                'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
+                'subsample': {'type': 'float', 'low': 0.6, 'high': 1.0}
+            }
+        
+        # Get custom params from session state or use defaults
+        if model_type not in st.session_state.custom_params or not st.session_state.custom_params[model_type]:
+            st.session_state.custom_params[model_type] = default_params.copy()
+        
+        custom_params = st.session_state.custom_params[model_type]
+        
+        use_custom = st.checkbox("Customize Parameters", value=bool(custom_params != default_params))
+        
+        if use_custom:
+            param_tabs = st.tabs(list(custom_params.keys()))
+            
+            for i, (param_name, param_config) in enumerate(custom_params.items()):
+                with param_tabs[i]:
+                    param_type = st.selectbox(
+                        f"Parameter Type for {param_name}", 
+                        ['categorical', 'int', 'float', 'loguniform'],
+                        index=['categorical', 'int', 'float', 'loguniform'].index(param_config['type']),
+                        key=f"{model_type}_{param_name}_type"
+                    )
+                    
+                    # Update config based on selected type
+                    custom_params[param_name]['type'] = param_type
+                    
+                    if param_type == 'categorical':
+                        # Handle categorical values as a comma-separated string
+                        if 'values' in param_config:
+                            values_str = ", ".join([str(v) for v in param_config['values']])
+                        else:
+                            values_str = "True, False"
+                            
+                        values_input = st.text_input(
+                            f"Values for {param_name} (comma-separated)", 
+                            value=values_str,
+                            key=f"{model_type}_{param_name}_values"
+                        )
+                        
+                        # Parse the input string back to a list
+                        values = []
+                        for v in values_input.split(','):
+                            v = v.strip()
+                            if v.lower() == 'true':
+                                values.append(True)
+                            elif v.lower() == 'false':
+                                values.append(False)
+                            elif v.lower() == 'none':
+                                values.append(None)
+                            elif v.isdigit():
+                                values.append(int(v))
+                            elif v.replace('.', '', 1).isdigit():
+                                values.append(float(v))
+                            else:
+                                values.append(v)
+                                
+                        custom_params[param_name]['values'] = values
+                        
+                    else:  # numeric types (int, float, loguniform)
+                        # Set default low/high values if not present
+                        low = param_config.get('low', 0)
+                        high = param_config.get('high', 100)
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            low = st.number_input(
+                                f"Minimum value for {param_name}", 
+                                value=float(low),
+                                key=f"{model_type}_{param_name}_low"
+                            )
+                        with col2:
+                            high = st.number_input(
+                                f"Maximum value for {param_name}", 
+                                value=float(high),
+                                key=f"{model_type}_{param_name}_high"
+                            )
+                            
+                        custom_params[param_name]['low'] = low
+                        custom_params[param_name]['high'] = high
+                        
+                        # Add step for int and float
+                        if param_type in ['int', 'float']:
+                            # Set default step value based on parameter type
+                            default_step = 1 if param_type == 'int' else 0.01
+                            step = param_config.get('step', default_step)
+                            
+                            # Ensure all numeric values have consistent types
+                            if param_type == 'int':
+                                # For integer parameters, convert all values to int
+                                step = int(step)
+                                step_min = 1
+                            else:
+                                # For float parameters, convert all values to float
+                                step = float(step)
+                                step_min = 0.0001
+                                
+                            step = st.number_input(
+                                f"Step size for {param_name}", 
+                                value=step,
+                                min_value=step_min,
+                                key=f"{model_type}_{param_name}_step"
+                            )
+                            custom_params[param_name]['step'] = step
+            
+            # Option to add a new parameter
+            new_param = st.text_input("Add new parameter (name):")
+            if new_param and new_param not in custom_params:
+                custom_params[new_param] = {'type': 'int', 'low': 1, 'high': 10}
+                st.success(f"Added {new_param}. Please customize it in the tabs above.")
+                st.experimental_rerun()
+            
+            # Option to remove a parameter
+            params_to_remove = st.multiselect("Remove parameters:", list(custom_params.keys()))
+            if params_to_remove:
+                for param in params_to_remove:
+                    if param in custom_params:
+                        del custom_params[param]
+                st.success(f"Removed {', '.join(params_to_remove)}.")
+                st.experimental_rerun()
+            
+            # Save custom parameters to session state
+            st.session_state.custom_params[model_type] = custom_params
+            
+            st.info("Your custom parameters have been saved and will be used for hyperparameter tuning.")
+            
+        return st.session_state.custom_params[model_type] if use_custom else default_params
+
+    def select_hyper(self):
+        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Select Best Parameters (Optuna)</h1>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
+        st.dataframe(self.data, width=800)
+
+        target_column = st.sidebar.selectbox("Select Target Column", self.data.columns)
+        feature_column = self.data.drop(columns=[target_column])
+        
+        options = [
+            "Linear Regression",
+            "Random Forest Regression",
+            "Random Forest Classifier",
+            "Gradient Boosting Classifier"
+        ]
+        
+        option = st.sidebar.selectbox("Select a Model for Parameter Tuning", options)
+        num_trials = st.sidebar.slider("Number of Optuna Trials", min_value=10, max_value=100, value=30)
+        
+        # Define scoring metrics based on task type
+        if option in ["Linear Regression", "Random Forest Regression"]:
+            scoring_options = ["neg_mean_squared_error", "neg_mean_absolute_error", "r2"]
+            default_idx = 0
+        else:  # Classification models
+            scoring_options = ["accuracy", "f1", "precision", "recall", "roc_auc"]
+            default_idx = 0
+            
+        scoring_metric = st.sidebar.selectbox(
+            "Select Scoring Metric", 
+            scoring_options, 
+            index=default_idx
+        )
+        
+        cross_val_folds = st.sidebar.slider("Cross-Validation Folds", min_value=2, max_value=10, value=5)
+        
+        # Get customized parameters
+        custom_params = self.customize_param_distributions(option)
+        
+        if 'tuned_model' not in st.session_state:
+            st.session_state.tuned_model = None
+        
+        if 'selected_option' not in st.session_state:
+            st.session_state.selected_option = None
+
+        if 'show_code' not in st.session_state:
+            st.session_state.show_code = False
+            
+        if 'is_tuned' not in st.session_state:
+            st.session_state.is_tuned = False
+
+        tune_button = st.button("Find Best Parameters")
+
+        # Only run the tuning when the button is pressed (not when show_code changes)
+        if tune_button:
+            # Update the session state to indicate we are tuning a new model
+            st.session_state.is_tuned = True
+            self.n_trials = num_trials
+            
+            with st.spinner(f"Tuning {option} with Optuna - Running {num_trials} trials..."):
+                if option == "Linear Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.linear_regression(feature_column, self.data[target_column])
+                    
+                elif option == "Random Forest Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.random_forest_regression(
+                        feature_column, 
+                        self.data[target_column], 
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "Random Forest Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.random_forest_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "Gradient Boosting Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.gradient_boosting_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+            
+            st.session_state.selected_option = option
+            st.success(f"Completed hyperparameter tuning for {option}!")
+        
+        # Display the existing results if we've already tuned a model
+        elif st.session_state.is_tuned and st.session_state.tuned_model is not None:
+            if st.session_state.selected_option == "Linear Regression":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Random Forest Regression":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Random Forest Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Gradient Boosting Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            
+            # Display visualizations if a study exists in session state
+            if 'current_study' in st.session_state:
+                # Create the visualizations again using the stored study
+                study = st.session_state.current_study
+                
+                # We'll display advanced visualizations with tabs
+                st.subheader("Optuna Visualizations")
+                tabs = st.tabs(["Parameter Importance", "Optimization History", "Parallel Coordinate", "Contour Plot", "Trial Data"])
+                
+                with tabs[0]:  # Parameter Importance
+                    try:
+                        # Get parameter importances
+                        importances = optuna.importance.get_param_importances(study)
+                        
+                        # Create a plotly figure for parameter importance
+                        param_names = list(importances.keys())
+                        importance_values = list(importances.values())
+                        
+                        fig_importance = go.Figure(data=[
+                            go.Bar(x=param_names, y=importance_values)
+                        ])
+                        
+                        fig_importance.update_layout(
+                            title="Parameter Importance",
+                            xaxis_title="Parameter",
+                            yaxis_title="Importance",
+                            height=500
+                        )
+                        
+                        st.plotly_chart(fig_importance, use_container_width=True)
+                    except Exception as e:
+                        st.write(f"Could not plot parameter importance: {str(e)}")
+                
+                with tabs[1]:  # Optimization History
+                    try:
+                        # Get optimization history
+                        values = [trial.value for trial in study.trials]
+                        best_values = [study.best_value for _ in range(len(study.trials))]
+                        
+                        fig_history = go.Figure()
+                        
+                        # Add value trace
+                        fig_history.add_trace(
+                            go.Scatter(
+                                x=list(range(len(values))),
+                                y=values,
+                                mode='markers',
+                                name='Trial Value',
+                                marker=dict(color='blue', size=8)
+                            )
+                        )
+                        
+                        # Add best value trace
+                        fig_history.add_trace(
+                            go.Scatter(
+                                x=list(range(len(best_values))),
+                                y=best_values,
+                                mode='lines',
+                                name='Best Value',
+                                line=dict(color='red', width=2)
+                            )
+                        )
+                        
+                        fig_history.update_layout(
+                            title="Optimization History",
+                            xaxis_title="Trial",
+                            yaxis_title="Objective Value",
+                            height=500
+                        )
+                        
+                        st.plotly_chart(fig_history, use_container_width=True)
+                    except Exception as e:
+                        st.write(f"Could not plot optimization history: {str(e)}")
+                
+                with tabs[2]:  # Parallel Coordinate Plot
+                    try:
+                        # Create data for parallel coordinate plot
+                        trial_data = []
+                        for trial in study.trials:
+                            if trial.state == optuna.trial.TrialState.COMPLETE:
+                                params = trial.params.copy()
+                                params['value'] = trial.value
+                                trial_data.append(params)
+                        
+                        if trial_data:
+                            df = pd.DataFrame(trial_data)
+                            
+                            fig = go.Figure(data=
+                                go.Parcoords(
+                                    line=dict(
+                                        color=df['value'],
+                                        colorscale='Viridis',
+                                        showscale=True
+                                    ),
+                                    dimensions=[
+                                        dict(
+                                            range=[df[col].min(), df[col].max()],
+                                            label=col,
+                                            values=df[col]
+                                        ) for col in df.columns
+                                    ]
+                                )
+                            )
+                            
+                            fig.update_layout(
+                                title="Parallel Coordinate Plot",
+                                height=600
+                            )
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.write("Not enough complete trials for parallel coordinate plot")
+                    except Exception as e:
+                        st.write(f"Could not create parallel coordinate plot: {str(e)}")
+                
+                with tabs[3]:  # Contour Plot
+                    try:
+                        if 'param_distributions' in st.session_state and len(st.session_state.param_distributions) >= 2:
+                            # Get the two most important parameters
+                            importances = optuna.importance.get_param_importances(study)
+                            top_params = list(importances.keys())[:2] if len(importances) >= 2 else list(st.session_state.param_distributions.keys())[:2]
+                            
+                            # Create data for contour plot
+                            param_x = top_params[0]
+                            param_y = top_params[1]
+                            
+                            x_values = []
+                            y_values = []
+                            objective_values = []
+                            
+                            for trial in study.trials:
+                                if trial.state == optuna.trial.TrialState.COMPLETE and param_x in trial.params and param_y in trial.params:
+                                    x_values.append(trial.params[param_x])
+                                    y_values.append(trial.params[param_y])
+                                    objective_values.append(trial.value)
+                            
+                            if x_values and y_values and objective_values:
+                                fig = go.Figure(data=
+                                    go.Contour(
+                                        x=x_values,
+                                        y=y_values,
+                                        z=objective_values,
+                                        contours=dict(
+                                            coloring='heatmap',
+                                            showlabels=True
+                                        ),
+                                        colorscale='Viridis'
+                                    )
+                                )
+                                
+                                fig.update_layout(
+                                    title=f"Contour Plot: {param_x} vs {param_y}",
+                                    xaxis_title=param_x,
+                                    yaxis_title=param_y,
+                                    height=500
+                                )
+                                
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.write("Not enough data for contour plot")
+                        else:
+                            st.write("Need at least 2 parameters for contour plot")
+                    except Exception as e:
+                        st.write(f"Could not create contour plot: {str(e)}")
+                
+                with tabs[4]:  # Trial Data Table
+                    try:
+                        trials_data = []
+                        for i, trial in enumerate(study.trials):
+                            if trial.state == optuna.trial.TrialState.COMPLETE:
+                                trial_info = {"Trial": i, "Value": trial.value}
+                                trial_info.update(trial.params)
+                                trials_data.append(trial_info)
+                        
+                        if trials_data:
+                            df = pd.DataFrame(trials_data)
+                            st.dataframe(df, use_container_width=True)
+                        else:
+                            st.write("No completed trials available")
+                    except Exception as e:
+                        st.write(f"Could not display trial data: {str(e)}")
+
+        # Show the results and code toggle only if a model has been tuned
+        if st.session_state.is_tuned and st.session_state.tuned_model is not None:
+            # Create a container for code display to maintain state between show/hide
+            code_container = st.container()
+            
+            # Export model button
+            if st.button("Export Tuned Model"):
+                import pickle
+                import io
+                from datetime import datetime
+                
+                model_pickle = pickle.dumps(st.session_state.tuned_model)
+                now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                model_name = f"{st.session_state.selected_option.replace(' ', '_').lower()}_{now}.pkl"
+                
+                st.download_button(
+                    label="Download Model",
+                    data=model_pickle,
+                    file_name=model_name,
+                    mime="application/octet-stream"
+                )
+            
+            # Toggle for showing code - won't trigger retuning
+            show_code = st.checkbox('Show Code', value=st.session_state.show_code)
+            st.session_state.show_code = show_code
+            
+            if show_code:
+                with code_container:
+                    # Store the current parameters before displaying code to preserve them
+                    if 'param_distributions' in st.session_state:
+                        param_distributions = st.session_state.param_distributions
+                        
+                    if st.session_state.selected_option == "Linear Regression":
+                        self.view_code._display_code('linear_regression')
+                    elif st.session_state.selected_option == "Random Forest Regression":
+                        self.view_code._display_code('random_forest_regression')
+                    elif st.session_state.selected_option == "Random Forest Classifier":
+                        self.view_code._display_code('random_forest_classifier')
+                    elif st.session_state.selected_option == "Gradient Boosting Classifier":
+                        self.view_code._display_code('gradient_boosting_classifier')
 
     def linear_regression(self, X_train, y_train):
         try:
@@ -204,6 +817,24 @@ class BestParam:
             return None
 
     def random_forest_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a Random Forest Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained RandomForestClassifier with best parameters
+        """
         try:
             if param_distributions is None:
                 param_distributions = {
@@ -238,9 +869,28 @@ class BestParam:
         except Exception as e:
             st.error(f"Error occurred during random forest classifier parameter tuning: {str(e)}")
             return None
-
+            
     def gradient_boosting_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a Gradient Boosting Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained GradientBoostingClassifier with best parameters
+        """
         try:
+            # Use default parameter distributions if none provided
             if param_distributions is None:
                 param_distributions = {
                     'n_estimators': {'type': 'int', 'low': 50, 'high': 300},
@@ -251,6 +901,7 @@ class BestParam:
                     'subsample': {'type': 'float', 'low': 0.6, 'high': 1.0}
                 }
             
+            # Define model creation function that matches the parameters in param_distributions
             def create_model(n_estimators, learning_rate, max_depth, min_samples_split, min_samples_leaf, subsample):
                 return GradientBoostingClassifier(
                     n_estimators=n_estimators,
@@ -262,6 +913,7 @@ class BestParam:
                     random_state=0
                 )
             
+            # Use optuna_search to find the best model
             best_model = self.optuna_search(
                 X_train, 
                 y_train, 
@@ -274,162 +926,3 @@ class BestParam:
         except Exception as e:
             st.error(f"Error occurred during gradient boosting classifier parameter tuning: {str(e)}")
             return None
-
-    def select_hyper(self):
-        st.markdown("<h1 style='text-align: center; font-size: 30px;'>Select Best Parameters (Optuna)</h1>", unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown("<h2 style='text-align: center; font-size: 20px;'>Dataset</h2>", unsafe_allow_html=True)
-        st.dataframe(self.data, width=800)
-
-        target_column = st.sidebar.selectbox("Select Target Column", self.data.columns)
-        feature_column = self.data.drop(columns=[target_column])
-        
-        options = [
-            "Linear Regression",
-            "Random Forest Regression",
-            "Random Forest Classifier",
-            "Gradient Boosting Classifier"
-        ]
-        
-        option = st.sidebar.selectbox("Select a Model for Parameter Tuning", options)
-        num_trials = st.sidebar.slider("Number of Optuna Trials", min_value=10, max_value=100, value=30)
-        
-        if 'tuned_model' not in st.session_state:
-            st.session_state.tuned_model = None
-        
-        if 'selected_option' not in st.session_state:
-            st.session_state.selected_option = None
-
-        if 'show_code' not in st.session_state:
-            st.session_state.show_code = False
-            
-        if 'is_tuned' not in st.session_state:
-            st.session_state.is_tuned = False
-
-        tune_button = st.button("Find Best Parameters")
-
-        # Only run the tuning when the button is pressed (not when show_code changes)
-        if tune_button:
-            # Update the session state to indicate we are tuning a new model
-            st.session_state.is_tuned = True
-            self.n_trials = num_trials
-            
-            if option == "Linear Regression":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-                st.session_state.tuned_model = self.linear_regression(feature_column, self.data[target_column])
-            elif option == "Random Forest Regression":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-                st.session_state.tuned_model = self.random_forest_regression(feature_column, self.data[target_column])
-            elif option == "Random Forest Classifier":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-                st.session_state.tuned_model = self.random_forest_classifier(feature_column, self.data[target_column])
-            elif option == "Gradient Boosting Classifier":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-                st.session_state.tuned_model = self.gradient_boosting_classifier(feature_column, self.data[target_column])
-            
-            st.session_state.selected_option = option
-        
-        # Display the existing results if we've already tuned a model
-        elif st.session_state.is_tuned and st.session_state.tuned_model is not None:
-            if st.session_state.selected_option == "Linear Regression":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Linear Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-            elif st.session_state.selected_option == "Random Forest Regression":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-            elif st.session_state.selected_option == "Random Forest Classifier":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-            elif st.session_state.selected_option == "Gradient Boosting Classifier":
-                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
-            
-            # Display visualizations if a study exists in session state
-            if 'current_study' in st.session_state:
-                # Create the visualizations again using the stored study
-                study = st.session_state.current_study
-                
-                st.subheader("Parameter Importance")
-                try:
-                    # Get parameter importances
-                    importances = optuna.importance.get_param_importances(study)
-                    
-                    # Create a plotly figure for parameter importance
-                    param_names = list(importances.keys())
-                    importance_values = list(importances.values())
-                    
-                    fig_importance = go.Figure(data=[
-                        go.Bar(x=param_names, y=importance_values)
-                    ])
-                    
-                    fig_importance.update_layout(
-                        title="Parameter Importance",
-                        xaxis_title="Parameter",
-                        yaxis_title="Importance",
-                        height=500
-                    )
-                    
-                    st.plotly_chart(fig_importance)
-                except Exception as e:
-                    st.write(f"Could not plot parameter importance: {str(e)}")
-                
-                st.subheader("Optimization History")
-                try:
-                    # Get optimization history
-                    values = [trial.value for trial in study.trials]
-                    best_values = [study.best_value for _ in range(len(study.trials))]
-                    
-                    fig_history = go.Figure()
-                    
-                    # Add value trace
-                    fig_history.add_trace(
-                        go.Scatter(
-                            x=list(range(len(values))),
-                            y=values,
-                            mode='markers',
-                            name='Trial Value',
-                            marker=dict(color='blue', size=8)
-                        )
-                    )
-                    
-                    # Add best value trace
-                    fig_history.add_trace(
-                        go.Scatter(
-                            x=list(range(len(best_values))),
-                            y=best_values,
-                            mode='lines',
-                            name='Best Value',
-                            line=dict(color='red', width=2)
-                        )
-                    )
-                    
-                    fig_history.update_layout(
-                        title="Optimization History",
-                        xaxis_title="Trial",
-                        yaxis_title="Objective Value",
-                        height=500
-                    )
-                    
-                    st.plotly_chart(fig_history)
-                except Exception as e:
-                    st.write(f"Could not plot optimization history: {str(e)}")
-
-        # Show the results and code toggle only if a model has been tuned
-        if st.session_state.is_tuned and st.session_state.tuned_model is not None:
-            # Create a container for code display to maintain state between show/hide
-            code_container = st.container()
-            
-            # Toggle for showing code - won't trigger retuning
-            show_code = st.checkbox('Show Code', value=st.session_state.show_code)
-            st.session_state.show_code = show_code
-            
-            if show_code:
-                with code_container:
-                    # Store the current parameters before displaying code to preserve them
-                    if 'param_distributions' in st.session_state:
-                        param_distributions = st.session_state.param_distributions
-                        
-                    if st.session_state.selected_option == "Linear Regression":
-                        self.view_code._display_code('linear_regression')
-                    elif st.session_state.selected_option == "Random Forest Regression":
-                        self.view_code._display_code('random_forest_regression')
-                    elif st.session_state.selected_option == "Random Forest Classifier":
-                        self.view_code._display_code('random_forest_classifier')
-                    elif st.session_state.selected_option == "Gradient Boosting Classifier":
-                        self.view_code._display_code('gradient_boosting_classifier')

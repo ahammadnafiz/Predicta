@@ -39,3 +39,6 @@ plotly
 matplotlib
 langchain-experimental
 tabulate
+missingno
+fancyimpute
+statsmodels
