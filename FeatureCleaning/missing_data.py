@@ -4,9 +4,8 @@ import logging
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.impute import SimpleImputer, KNNImputer, IterativeImputer
+from sklearn.impute import SimpleImputer, KNNImputer
 from show_code import ShowCode
-from sklearn.experimental import enable_iterative_imputer
 from scipy import stats
 
 class DataImputer:
@@ -413,43 +412,6 @@ class DataImputer:
             return self.data
         except Exception as e:
             st.error(f"Error during simple imputation: {str(e)}")
-            raise
-
-    def impute_NA_with_iterative(self, NA_col=[], max_iter=10, initial_strategy='mean'):
-        """Impute missing values using IterativeImputer (MICE)."""
-        try:
-            imputer = IterativeImputer(max_iter=max_iter, random_state=42, 
-                                     initial_strategy=initial_strategy)
-            
-            # Get numeric columns from selection that have missing values
-            numeric_cols = []
-            for col in NA_col:
-                if col in self.data.columns and np.issubdtype(self.data[col].dtype, np.number) and self.data[col].isnull().sum() > 0:
-                    numeric_cols.append(col)
-            
-            if not numeric_cols:
-                st.warning("No numeric columns with missing values selected. Iterative imputation requires numeric data.")
-                return self.data
-                
-            # Create a copy of the dataframe with only numeric columns to impute
-            numeric_data = self.data[numeric_cols].copy()
-            
-            # Perform imputation
-            imputed_data = imputer.fit_transform(numeric_data)
-            
-            # Update the original dataframe with imputed values
-            for i, col in enumerate(numeric_cols):
-                self.data[col] = imputed_data[:, i]
-                st.info(f"Imputed missing values in column: {col} using iterative imputation")
-            
-            # Add before/after comparison
-            if st.checkbox("Show before/after comparison"):
-                self._show_imputation_comparison(numeric_cols)
-                
-            return self.data
-        except Exception as e:
-            st.error(f"Error during iterative imputation: {str(e)}")
-            self.logger.error(f"Error during iterative imputation: {str(e)}")
             raise
 
     def impute_NA_with_grouped(self, group_cols, NA_col=[], method='mean'):
@@ -1334,56 +1296,6 @@ class DataImputer:
                           strategy=strategy,
                           NA_col=na_cols)
 
-    def _handle_impute_iterative(self):
-        """Handle the Impute NA with Iterative (MICE) option in the Streamlit interface."""
-        st.markdown("<h2 style='text-align: center; font-size: 25px;'>Impute NA with Iterative Imputation (MICE)</h2>", unsafe_allow_html=True)
-        
-        info_expander = st.expander("What is Iterative Imputation?")
-        with info_expander:
-            st.markdown("""
-            **Multivariate Imputation by Chained Equations (MICE)** is a powerful technique for handling missing data:
-            
-            - Uses all other variables to predict missing values in each column
-            - Iteratively refines predictions to improve accuracy
-            - Preserves relationships between variables
-            - Ideal for complex datasets with many correlated variables
-            
-            This method is particularly useful when data is not missing completely at random.
-            """)
-        
-        selected_columns = st.multiselect(
-            "Select columns to impute", 
-            options=self.data.select_dtypes(include=[np.number]).columns
-        )
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            max_iter = st.slider("Max Iterations", min_value=1, max_value=50, value=10)
-        with col2:
-            initial_strategy = st.selectbox("Initial Strategy", ["mean", "median"])
-        
-        if st.button("Execute Iterative Imputation"):
-            st.session_state['impute_iterative_clicked'] = True
-        
-        if st.session_state.get('impute_iterative_clicked', False):
-            result = self.impute_NA_with_iterative(
-                NA_col=selected_columns,
-                max_iter=max_iter,
-                initial_strategy=initial_strategy
-            )
-            
-            st.write("Result Preview:")
-            st.dataframe(result.head())
-            
-            show_code = st.checkbox(
-                'Show Code',
-                value=st.session_state.get('impute_iterative_show_code', False)
-            )
-            st.session_state['impute_iterative_show_code'] = show_code
-            
-            if show_code:
-                self.view_code._display_code('impute_NA_with_iterative')
-
     def _handle_auto_clean(self):
         """Handle the Auto Clean option in the Streamlit interface."""
         st.markdown("<h2 style='text-align: center; font-size: 25px;'>Auto Clean</h2>", unsafe_allow_html=True)
@@ -1499,7 +1411,6 @@ class DataImputer:
             "Impute NA with Arbitrary Value",
             "Impute NA with Interpolation",
             "Impute NA with KNN",
-            "Impute NA with Iterative (MICE)",
             "Impute NA with SimpleImputer",
             "Impute NA with Average",
             "Impute NA with Grouped",
@@ -1532,8 +1443,6 @@ class DataImputer:
             self._handle_impute_interpolation()
         elif option == "Impute NA with KNN":
             self._handle_impute_knn()
-        elif option == "Impute NA with Iterative (MICE)":
-            self._handle_impute_iterative()
         elif option == "Impute NA with SimpleImputer":
             self._handle_impute_simple_imputer()
         elif option == "Impute NA with Average":
