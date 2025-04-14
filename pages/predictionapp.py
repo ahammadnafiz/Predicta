@@ -1,8 +1,52 @@
-import streamlit as st
+import logging
+
+# Configure logging to ignore specific PyTorch errors
+class TorchErrorFilter(logging.Filter):
+    def filter(self, record):
+        if "torch._C._get_custom_class_python_wrapper" in str(record.getMessage()):
+            return False
+        return True
+
+# Apply the log filter to root logger
+root_logger = logging.getLogger()
+root_logger.addFilter(TorchErrorFilter())
+
+# Monkeypatch Streamlit's module path extraction to handle PyTorch modules
+from streamlit.watcher import local_sources_watcher
+
+original_get_module_paths = local_sources_watcher.get_module_paths
+
+def patched_get_module_paths(module):
+    try:
+        return original_get_module_paths(module)
+    except RuntimeError as e:
+        if "torch._C._get_custom_class_python_wrapper" in str(e):
+            return []
+        raise e
+
+# Apply the patch
+local_sources_watcher.get_module_paths = patched_get_module_paths
+
+# Suppress asyncio loop warnings
+import asyncio
+original_get_running_loop = asyncio.get_running_loop
+
+def patched_get_running_loop():
+    try:
+        return original_get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
+# Apply the patch
+asyncio.get_running_loop = patched_get_running_loop
+
 import pandas as pd
+import streamlit as st
+import logging
 import joblib
 from Theme import theme
-
 
 class PredictionApp:
     def __init__(self):
