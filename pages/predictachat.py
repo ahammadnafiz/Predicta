@@ -29,6 +29,8 @@ local_sources_watcher.get_module_paths = patched_get_module_paths
 
 # Suppress asyncio loop warnings
 import asyncio
+import atexit
+
 original_get_running_loop = asyncio.get_running_loop
 
 def patched_get_running_loop():
@@ -41,6 +43,26 @@ def patched_get_running_loop():
 
 # Apply the patch
 asyncio.get_running_loop = patched_get_running_loop
+
+# Setup proper event loop closing with atexit
+def close_event_loops():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If there are pending tasks, gather and cancel them
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            # Run the event loop until all tasks are done or cancelled
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        if not loop.is_closed():
+            loop.close()
+    except Exception:
+        pass  # Suppress errors during shutdown
+
+# Register the cleanup function
+atexit.register(close_event_loops)
 
 import streamlit as st
 import time
@@ -61,6 +83,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain.text_splitter import CharacterTextSplitter
 from Theme import theme
+from contextlib import asynccontextmanager
 
 class ChatPredicta:
     def __init__(self, df, groq_api_key):
