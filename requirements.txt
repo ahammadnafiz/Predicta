@@ -5,6 +5,7 @@ langchain-community
 langchain-core
 langchain-groq
 langchain-text-splitters
+langchain-huggingface
 langsmith
 matplotlib
 matplotlib-inline
