@@ -55,7 +55,7 @@ from langchain_groq import ChatGroq
 # Add model_rebuild call to fix Pydantic model configuration
 ChatGroq.model_rebuild()
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain.text_splitter import CharacterTextSplitter
 from Theme import theme
