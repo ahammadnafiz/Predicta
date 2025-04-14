@@ -29,8 +29,6 @@ local_sources_watcher.get_module_paths = patched_get_module_paths
 
 # Suppress asyncio loop warnings
 import asyncio
-import atexit
-
 original_get_running_loop = asyncio.get_running_loop
 
 def patched_get_running_loop():
@@ -44,26 +42,6 @@ def patched_get_running_loop():
 # Apply the patch
 asyncio.get_running_loop = patched_get_running_loop
 
-# Setup proper event loop closing with atexit
-def close_event_loops():
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If there are pending tasks, gather and cancel them
-            pending = asyncio.all_tasks(loop)
-            for task in pending:
-                task.cancel()
-            # Run the event loop until all tasks are done or cancelled
-            if pending:
-                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-        if not loop.is_closed():
-            loop.close()
-    except Exception:
-        pass  # Suppress errors during shutdown
-
-# Register the cleanup function
-atexit.register(close_event_loops)
-
 import streamlit as st
 import time
 import pandas as pd
@@ -72,18 +50,15 @@ import shutil
 from langchain.chains import LLMChain
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
-# Updated import for ConversationBufferWindowMemory
-from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from langchain_groq import ChatGroq
 # Add model_rebuild call to fix Pydantic model configuration
 ChatGroq.model_rebuild()
 from langchain_community.vectorstores import FAISS
-# Updated import for HuggingFaceEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain.text_splitter import CharacterTextSplitter
 from Theme import theme
-from contextlib import asynccontextmanager
 
 class ChatPredicta:
     def __init__(self, df, groq_api_key):
@@ -92,7 +67,6 @@ class ChatPredicta:
         self.memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history", return_messages=True)
         self.vector_store = None
         self.vector_store_path = "faiss_index"
-        self._async_clients = []
 
         # Initialize Groq Langchain chat object
         self.groq_chat = ChatGroq(groq_api_key=self.groq_api_key, model_name='llama3-8b-8192')
@@ -118,40 +92,6 @@ class ChatPredicta:
             verbose=False,
             memory=self.memory,
         )
-        
-    def __del__(self):
-        """Destructor to ensure cleanup of resources"""
-        self.cleanup_resources()
-        
-    def cleanup_resources(self):
-        """Clean up any async resources"""
-        try:
-            # Force cleanup of any async clients that might be in the LLM
-            if hasattr(self.groq_chat, 'client'):
-                client = getattr(self.groq_chat, 'client', None)
-                if client and hasattr(client, '_async_client'):
-                    async_client = getattr(client, '_async_client', None)
-                    if async_client and hasattr(async_client, 'aclose'):
-                        # Create an event loop if needed
-                        try:
-                            loop = asyncio.get_event_loop()
-                        except RuntimeError:
-                            loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(loop)
-                        
-                        # Try to run the aclose coroutine
-                        if not loop.is_closed():
-                            try:
-                                if loop.is_running():
-                                    # Can't run in a running loop, schedule it
-                                    asyncio.create_task(async_client.aclose())
-                                else:
-                                    # Run the coroutine to completion
-                                    loop.run_until_complete(async_client.aclose())
-                            except Exception:
-                                pass  # Ignore errors during cleanup
-        except Exception:
-            pass  # Suppress any errors during cleanup
     
     def create_vector_store(self):
         """Create a FAISS vector store from the dataframe"""
@@ -335,9 +275,6 @@ def main():
 # Register auto-cleanup function when app exits
 def handle_app_exit():
     if st.session_state.chat_predicta:
-        # First clean up any async resources
-        st.session_state.chat_predicta.cleanup_resources()
-        # Then clean up the vector store
         st.session_state.chat_predicta.clear_vector_store()
 
 # Run the main function
@@ -347,7 +284,4 @@ if __name__ == "__main__":
     finally:
         # This will be called when the app is closed/restarted
         if "chat_predicta" in st.session_state and st.session_state.chat_predicta:
-            # First clean up any async resources
-            st.session_state.chat_predicta.cleanup_resources()
-            # Then clean up the vector store
             st.session_state.chat_predicta.clear_vector_store()
