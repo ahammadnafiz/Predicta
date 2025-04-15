@@ -24,8 +24,8 @@ urllib3
 xgboost
 category_encoders
 imbalanced-learn
-torch
-torchvision
+torch==2.0.1
+torchvision==0.15.2
 Pillow
 opencv-python
 opencv-python-headless
@@ -33,7 +33,7 @@ ultralytics
 faiss-cpu
 sentence-transformers
 chardet
-transformers
+transformers==4.30.2
 python-dateutil
 optuna
 plotly
