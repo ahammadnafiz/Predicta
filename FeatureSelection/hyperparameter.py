@@ -2,9 +2,14 @@ import streamlit as st
 import optuna
 import numpy as np
 import plotly.graph_objects as go
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostRegressor, ExtraTreesRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.ensemble import StackingClassifier, StackingRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
 from sklearn.model_selection import cross_val_score
 from show_code import ShowCode
 import pandas as pd
@@ -23,7 +28,20 @@ class BestParam:
                 "Linear Regression": {},
                 "Random Forest Regression": {},
                 "Random Forest Classifier": {},
-                "Gradient Boosting Classifier": {}
+                "Gradient Boosting Classifier": {},
+                "Logistic Regression": {},
+                "AdaBoost Classifier": {},
+                "Decision Tree Classifier": {},
+                "KNN Classifier": {},
+                "Stacking Classifier": {},
+                "KNN Regression": {},
+                "Decision Tree Regression": {},
+                "Gradient Boosting Regression": {},
+                "AdaBoost Regression": {},
+                "Extra Trees Regression": {},
+                "SVR Regression": {},
+                "XGBoost Regression": {},
+                "Stacking Regression": {}
             }
 
     def optuna_search(self, X_train, y_train, create_model, param_distributions, scoring='accuracy', cv=5, n_trials=10):
@@ -308,6 +326,47 @@ class BestParam:
                 'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
                 'subsample': {'type': 'float', 'low': 0.6, 'high': 1.0}
             }
+        elif model_type == "Logistic Regression":
+            default_params = {
+                'C': {'type': 'loguniform', 'low': 0.01, 'high': 10.0},
+                'penalty': {'type': 'categorical', 'values': ['l1', 'l2', 'elasticnet', None]},
+                'solver': {'type': 'categorical', 'values': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']},
+                'max_iter': {'type': 'int', 'low': 100, 'high': 1000},
+                'l1_ratio': {'type': 'float', 'low': 0.0, 'high': 1.0},
+                'class_weight': {'type': 'categorical', 'values': ['balanced', None]}
+            }
+        elif model_type == "Decision Tree Classifier":
+            default_params = {
+                'max_depth': {'type': 'int', 'low': 3, 'high': 30},
+                'min_samples_split': {'type': 'int', 'low': 2, 'high': 20},
+                'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 20},
+                'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]},
+                'criterion': {'type': 'categorical', 'values': ['gini', 'entropy']},
+                'class_weight': {'type': 'categorical', 'values': ['balanced', None]}
+            }
+        elif model_type == "AdaBoost Classifier":
+            default_params = {
+                'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 2.0},
+                'algorithm': {'type': 'categorical', 'values': ['SAMME']}
+            }
+        elif model_type == "KNN Classifier":
+            default_params = {
+                'n_neighbors': {'type': 'int', 'low': 1, 'high': 30},
+                'weights': {'type': 'categorical', 'values': ['uniform', 'distance']},
+                'algorithm': {'type': 'categorical', 'values': ['auto', 'ball_tree', 'kd_tree', 'brute']},
+                'leaf_size': {'type': 'int', 'low': 10, 'high': 100},
+                'p': {'type': 'int', 'low': 1, 'high': 2}
+            }
+        elif model_type == "Stacking Classifier":
+            default_params = {
+                'rf_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                'rf_max_depth': {'type': 'int', 'low': 3, 'high': 20},
+                'gb_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                'gb_learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                'lr_C': {'type': 'loguniform', 'low': 0.01, 'high': 10.0},
+                'final_estimator': {'type': 'categorical', 'values': ['lr', 'rf']}
+            }
         
         # Get custom params from session state or use defaults
         if model_type not in st.session_state.custom_params or not st.session_state.custom_params[model_type]:
@@ -445,8 +504,21 @@ class BestParam:
         options = [
             "Linear Regression",
             "Random Forest Regression",
+            "Decision Tree Regression",
+            "KNN Regression",
+            "Gradient Boosting Regression",
+            "AdaBoost Regression",
+            "Extra Trees Regression",
+            "SVR Regression",
+            "XGBoost Regression",
+            "Stacking Regression",
             "Random Forest Classifier",
-            "Gradient Boosting Classifier"
+            "Gradient Boosting Classifier",
+            "Logistic Regression",
+            "Decision Tree Classifier",
+            "AdaBoost Classifier",
+            "KNN Classifier",
+            "Stacking Classifier"
         ]
         
         option = st.sidebar.selectbox("Select a Model for Parameter Tuning", options)
@@ -504,6 +576,78 @@ class BestParam:
                         param_distributions=custom_params,
                         scoring=scoring_metric
                     )
+                
+                elif option == "Decision Tree Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Decision Tree Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.decision_tree_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "KNN Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>KNN Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.knn_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "Gradient Boosting Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.gradient_boosting_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "AdaBoost Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>AdaBoost Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.adaboost_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "Extra Trees Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Extra Trees Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.extra_trees_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "SVR Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>SVR Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.svr_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "XGBoost Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>XGBoost Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.xgb_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                
+                elif option == "Stacking Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Stacking Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.stacking_regressor(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
                     
                 elif option == "Random Forest Classifier":
                     st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
@@ -517,6 +661,51 @@ class BestParam:
                 elif option == "Gradient Boosting Classifier":
                     st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
                     st.session_state.tuned_model = self.gradient_boosting_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "Logistic Regression":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Logistic Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.logistic_regression_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "Decision Tree Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Decision Tree Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.decision_tree_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "AdaBoost Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>AdaBoost Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.adaboost_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "KNN Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>KNN Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.knn_classifier(
+                        feature_column, 
+                        self.data[target_column],
+                        param_distributions=custom_params,
+                        scoring=scoring_metric
+                    )
+                    
+                elif option == "Stacking Classifier":
+                    st.markdown("<h2 style='text-align: center; font-size: 25px;'>Stacking Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+                    st.session_state.tuned_model = self.stacking_classifier(
                         feature_column, 
                         self.data[target_column],
                         param_distributions=custom_params,
@@ -536,6 +725,16 @@ class BestParam:
                 st.markdown("<h2 style='text-align: center; font-size: 25px;'>Random Forest Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
             elif st.session_state.selected_option == "Gradient Boosting Classifier":
                 st.markdown("<h2 style='text-align: center; font-size: 25px;'>Gradient Boosting Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Logistic Regression":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Logistic Regression HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Decision Tree Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Decision Tree Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "AdaBoost Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>AdaBoost Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "KNN Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>KNN Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
+            elif st.session_state.selected_option == "Stacking Classifier":
+                st.markdown("<h2 style='text-align: center; font-size: 25px;'>Stacking Classifier HyperParameter Tuning with Optuna</h2>", unsafe_allow_html=True)
             
             # Display visualizations if a study exists in session state
             if 'current_study' in st.session_state:
@@ -759,6 +958,16 @@ class BestParam:
                         self.view_code._display_code('random_forest_classifier')
                     elif st.session_state.selected_option == "Gradient Boosting Classifier":
                         self.view_code._display_code('gradient_boosting_classifier')
+                    elif st.session_state.selected_option == "Logistic Regression":
+                        self.view_code._display_code('logistic_regression_classifier')
+                    elif st.session_state.selected_option == "Decision Tree Classifier":
+                        self.view_code._display_code('decision_tree_classifier')
+                    elif st.session_state.selected_option == "AdaBoost Classifier":
+                        self.view_code._display_code('adaboost_classifier')
+                    elif st.session_state.selected_option == "KNN Classifier":
+                        self.view_code._display_code('knn_classifier')
+                    elif st.session_state.selected_option == "Stacking Classifier":
+                        self.view_code._display_code('stacking_classifier')
 
     def linear_regression(self, X_train, y_train):
         try:
@@ -925,4 +1134,727 @@ class BestParam:
             return best_model
         except Exception as e:
             st.error(f"Error occurred during gradient boosting classifier parameter tuning: {str(e)}")
+            return None
+
+    def logistic_regression_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a Logistic Regression Classifier using Optuna
+
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+
+        Returns:
+        --------
+        best_model : trained LogisticRegression with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'C': {'type': 'loguniform', 'low': 0.01, 'high': 10.0},
+                    'penalty': {'type': 'categorical', 'values': ['l1', 'l2', 'elasticnet', None]},
+                    'solver': {'type': 'categorical', 'values': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']},
+                    'max_iter': {'type': 'int', 'low': 100, 'high': 1000},
+                    'l1_ratio': {'type': 'float', 'low': 0.0, 'high': 1.0}  # Include l1_ratio for elasticnet
+                }
+
+            def create_model(C, penalty, solver, max_iter, l1_ratio=None):
+                if penalty == 'elasticnet' and solver != 'saga':
+                    raise ValueError("Elasticnet penalty requires 'saga' solver.")
+                return LogisticRegression(C=C, penalty=penalty, solver=solver, max_iter=max_iter, l1_ratio=l1_ratio)
+
+            best_model = self.optuna_search(
+                X_train,
+                y_train,
+                create_model,
+                param_distributions,
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during logistic regression parameter tuning: {str(e)}")
+            return None
+
+    def decision_tree_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a Decision Tree Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained DecisionTreeClassifier with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'max_depth': {'type': 'int', 'low': 3, 'high': 30},
+                    'min_samples_split': {'type': 'int', 'low': 2, 'high': 20},
+                    'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 20},
+                    'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]},
+                    'criterion': {'type': 'categorical', 'values': ['gini', 'entropy']},
+                    'class_weight': {'type': 'categorical', 'values': ['balanced', None]}
+                }
+            
+            def create_model(max_depth, min_samples_split, min_samples_leaf, max_features, criterion, class_weight):
+                return DecisionTreeClassifier(
+                    max_depth=max_depth,
+                    min_samples_split=min_samples_split,
+                    min_samples_leaf=min_samples_leaf,
+                    max_features=max_features,
+                    criterion=criterion,
+                    class_weight=class_weight,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during decision tree classifier parameter tuning: {str(e)}")
+            return None
+            
+    def adaboost_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for an AdaBoost Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained AdaBoostClassifier with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                    'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 2.0},
+                    'algorithm': {'type': 'categorical', 'values': ['SAMME']}
+                }
+            
+            def create_model(n_estimators, learning_rate, algorithm):
+                return AdaBoostClassifier(
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    algorithm=algorithm,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during AdaBoost classifier parameter tuning: {str(e)}")
+            return None
+
+    def knn_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a K-Nearest Neighbors Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained KNeighborsClassifier with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_neighbors': {'type': 'int', 'low': 1, 'high': 30},
+                    'weights': {'type': 'categorical', 'values': ['uniform', 'distance']},
+                    'algorithm': {'type': 'categorical', 'values': ['auto', 'ball_tree', 'kd_tree', 'brute']},
+                    'leaf_size': {'type': 'int', 'low': 10, 'high': 100},
+                    'p': {'type': 'int', 'low': 1, 'high': 2}  # 1 for Manhattan, 2 for Euclidean
+                }
+            
+            def create_model(n_neighbors, weights, algorithm, leaf_size, p):
+                return KNeighborsClassifier(
+                    n_neighbors=n_neighbors,
+                    weights=weights,
+                    algorithm=algorithm,
+                    leaf_size=leaf_size,
+                    p=p
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during KNN classifier parameter tuning: {str(e)}")
+            return None
+            
+    def stacking_classifier(self, X_train, y_train, param_distributions=None, scoring='accuracy'):
+        """
+        Perform hyperparameter tuning for a Stacking Classifier using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'accuracy')
+            
+        Returns:
+        --------
+        best_model : trained StackingClassifier with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'rf_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                    'rf_max_depth': {'type': 'int', 'low': 3, 'high': 20},
+                    'gb_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                    'gb_learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                    'lr_C': {'type': 'loguniform', 'low': 0.01, 'high': 10.0},
+                    'final_estimator': {'type': 'categorical', 'values': ['lr', 'rf']}
+                }
+            
+            def create_model(rf_n_estimators, rf_max_depth, gb_n_estimators, gb_learning_rate, lr_C, final_estimator):
+                # Create base estimators
+                estimators = [
+                    ('rf', RandomForestClassifier(
+                        n_estimators=rf_n_estimators,
+                        max_depth=rf_max_depth,
+                        random_state=0
+                    )),
+                    ('gb', GradientBoostingClassifier(
+                        n_estimators=gb_n_estimators,
+                        learning_rate=gb_learning_rate,
+                        random_state=0
+                    )),
+                    ('lr', LogisticRegression(C=lr_C, max_iter=500, random_state=0))
+                ]
+                
+                # Create final estimator
+                if final_estimator == 'lr':
+                    final_est = LogisticRegression(random_state=0)
+                else:  # rf
+                    final_est = RandomForestClassifier(random_state=0)
+                
+                return StackingClassifier(
+                    estimators=estimators,
+                    final_estimator=final_est,
+                    cv=5,
+                    stack_method='auto',
+                    n_jobs=-1
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during Stacking classifier parameter tuning: {str(e)}")
+            return None
+
+    def decision_tree_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for a Decision Tree Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained DecisionTreeRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'max_depth': {'type': 'int', 'low': 3, 'high': 30},
+                    'min_samples_split': {'type': 'int', 'low': 2, 'high': 20},
+                    'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 20},
+                    'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]},
+                    'criterion': {'type': 'categorical', 'values': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson']}
+                }
+            
+            def create_model(max_depth, min_samples_split, min_samples_leaf, max_features, criterion):
+                return DecisionTreeRegressor(
+                    max_depth=max_depth,
+                    min_samples_split=min_samples_split,
+                    min_samples_leaf=min_samples_leaf,
+                    max_features=max_features,
+                    criterion=criterion,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during decision tree regressor parameter tuning: {str(e)}")
+            return None
+            
+    def knn_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for a K-Nearest Neighbors Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained KNeighborsRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_neighbors': {'type': 'int', 'low': 1, 'high': 30},
+                    'weights': {'type': 'categorical', 'values': ['uniform', 'distance']},
+                    'algorithm': {'type': 'categorical', 'values': ['auto', 'ball_tree', 'kd_tree', 'brute']},
+                    'leaf_size': {'type': 'int', 'low': 10, 'high': 100},
+                    'p': {'type': 'int', 'low': 1, 'high': 2}  # 1 for Manhattan, 2 for Euclidean
+                }
+            
+            def create_model(n_neighbors, weights, algorithm, leaf_size, p):
+                return KNeighborsRegressor(
+                    n_neighbors=n_neighbors,
+                    weights=weights,
+                    algorithm=algorithm,
+                    leaf_size=leaf_size,
+                    p=p
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during KNN regressor parameter tuning: {str(e)}")
+            return None
+
+    def gradient_boosting_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for a Gradient Boosting Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained GradientBoostingRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                    'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                    'max_depth': {'type': 'int', 'low': 3, 'high': 20},
+                    'min_samples_split': {'type': 'int', 'low': 2, 'high': 20},
+                    'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
+                    'subsample': {'type': 'float', 'low': 0.6, 'high': 1.0},
+                    'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]}
+                }
+            
+            def create_model(n_estimators, learning_rate, max_depth, min_samples_split, min_samples_leaf, subsample, max_features):
+                return GradientBoostingRegressor(
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    max_depth=max_depth,
+                    min_samples_split=min_samples_split,
+                    min_samples_leaf=min_samples_leaf,
+                    subsample=subsample,
+                    max_features=max_features,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during gradient boosting regressor parameter tuning: {str(e)}")
+            return None
+            
+    def adaboost_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for an AdaBoost Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained AdaBoostRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                    'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 2.0},
+                    'loss': {'type': 'categorical', 'values': ['linear', 'square', 'exponential']}
+                }
+            
+            def create_model(n_estimators, learning_rate, loss):
+                return AdaBoostRegressor(
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    loss=loss,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during AdaBoost regressor parameter tuning: {str(e)}")
+            return None
+
+    def extra_trees_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for an Extra Trees Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained ExtraTreesRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                    'max_depth': {'type': 'int', 'low': 5, 'high': 30},
+                    'min_samples_split': {'type': 'int', 'low': 2, 'high': 20},
+                    'min_samples_leaf': {'type': 'int', 'low': 1, 'high': 10},
+                    'max_features': {'type': 'categorical', 'values': ['sqrt', 'log2', None]},
+                    'bootstrap': {'type': 'categorical', 'values': [True, False]}
+                }
+            
+            def create_model(n_estimators, max_depth, min_samples_split, min_samples_leaf, max_features, bootstrap):
+                return ExtraTreesRegressor(
+                    n_estimators=n_estimators,
+                    max_depth=max_depth,
+                    min_samples_split=min_samples_split,
+                    min_samples_leaf=min_samples_leaf,
+                    max_features=max_features,
+                    bootstrap=bootstrap,
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during Extra Trees regressor parameter tuning: {str(e)}")
+            return None
+            
+    def svr_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for a Support Vector Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained SVR with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'C': {'type': 'loguniform', 'low': 0.01, 'high': 100.0},
+                    'epsilon': {'type': 'loguniform', 'low': 0.001, 'high': 1.0},
+                    'kernel': {'type': 'categorical', 'values': ['linear', 'poly', 'rbf', 'sigmoid']},
+                    'gamma': {'type': 'categorical', 'values': ['scale', 'auto']}
+                }
+            
+            def create_model(C, epsilon, kernel, gamma):
+                return SVR(
+                    C=C,
+                    epsilon=epsilon,
+                    kernel=kernel,
+                    gamma=gamma
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during SVR parameter tuning: {str(e)}")
+            return None
+
+    def xgb_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for an XGBoost Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained XGBRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'n_estimators': {'type': 'int', 'low': 50, 'high': 500},
+                    'learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                    'max_depth': {'type': 'int', 'low': 3, 'high': 15},
+                    'min_child_weight': {'type': 'int', 'low': 1, 'high': 10},
+                    'subsample': {'type': 'float', 'low': 0.5, 'high': 1.0},
+                    'colsample_bytree': {'type': 'float', 'low': 0.5, 'high': 1.0},
+                    'gamma': {'type': 'float', 'low': 0, 'high': 5},
+                    'reg_alpha': {'type': 'loguniform', 'low': 0.001, 'high': 10.0},
+                    'reg_lambda': {'type': 'loguniform', 'low': 0.001, 'high': 10.0}
+                }
+            
+            def create_model(n_estimators, learning_rate, max_depth, min_child_weight, 
+                             subsample, colsample_bytree, gamma, reg_alpha, reg_lambda):
+                return XGBRegressor(
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    max_depth=max_depth,
+                    min_child_weight=min_child_weight,
+                    subsample=subsample,
+                    colsample_bytree=colsample_bytree,
+                    gamma=gamma,
+                    reg_alpha=reg_alpha,
+                    reg_lambda=reg_lambda,
+                    objective='reg:squarederror',
+                    random_state=0
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during XGBoost regressor parameter tuning: {str(e)}")
+            return None
+            
+    def stacking_regressor(self, X_train, y_train, param_distributions=None, scoring='neg_mean_squared_error'):
+        """
+        Perform hyperparameter tuning for a Stacking Regressor using Optuna
+        
+        Parameters:
+        -----------
+        X_train : DataFrame
+            Features training data
+        y_train : Series
+            Target training data
+        param_distributions : dict, optional
+            Dictionary of parameter names and their possible distributions for Optuna
+        scoring : str, optional
+            Metric to evaluate models (default: 'neg_mean_squared_error')
+            
+        Returns:
+        --------
+        best_model : trained StackingRegressor with best parameters
+        """
+        try:
+            if param_distributions is None:
+                param_distributions = {
+                    'rf_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                    'rf_max_depth': {'type': 'int', 'low': 3, 'high': 20},
+                    'gb_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                    'gb_learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                    'xgb_n_estimators': {'type': 'int', 'low': 50, 'high': 200},
+                    'xgb_learning_rate': {'type': 'loguniform', 'low': 0.01, 'high': 0.3},
+                    'final_estimator': {'type': 'categorical', 'values': ['linear', 'rf']}
+                }
+            
+            def create_model(rf_n_estimators, rf_max_depth, gb_n_estimators, gb_learning_rate, 
+                             xgb_n_estimators, xgb_learning_rate, final_estimator):
+                # Create base estimators
+                estimators = [
+                    ('rf', RandomForestRegressor(
+                        n_estimators=rf_n_estimators,
+                        max_depth=rf_max_depth,
+                        random_state=0
+                    )),
+                    ('gb', GradientBoostingRegressor(
+                        n_estimators=gb_n_estimators,
+                        learning_rate=gb_learning_rate,
+                        random_state=0
+                    )),
+                    ('xgb', XGBRegressor(
+                        n_estimators=xgb_n_estimators,
+                        learning_rate=xgb_learning_rate,
+                        random_state=0
+                    ))
+                ]
+                
+                # Create final estimator
+                if final_estimator == 'linear':
+                    final_est = LinearRegression()
+                else:  # rf
+                    final_est = RandomForestRegressor(random_state=0)
+                
+                return StackingRegressor(
+                    estimators=estimators,
+                    final_estimator=final_est,
+                    cv=5,
+                    n_jobs=-1
+                )
+            
+            best_model = self.optuna_search(
+                X_train, 
+                y_train, 
+                create_model, 
+                param_distributions, 
+                scoring=scoring,
+                n_trials=self.n_trials
+            )
+            return best_model
+        except Exception as e:
+            st.error(f"Error occurred during Stacking regressor parameter tuning: {str(e)}")
             return None
