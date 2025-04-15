@@ -384,7 +384,7 @@ class DataAnalysisAgent(LLMAgent):
        - Add detailed annotations:
          ```
          for i, value in enumerate(values):
-             plt.annotate(f'{value:.1f}', (i, value), ha='center', va='bottom', fontsize=9)
+             plt.annotate(f'value:.1f', (i, value), ha='center', va='bottom', fontsize=9)
          ```
     
     4. ADVANCED VISUALIZATION TECHNIQUES:
@@ -415,7 +415,7 @@ class DataAnalysisAgent(LLMAgent):
          fig = px.scatter(df, x='x', y='y', color='category', hover_name='name')
          st.plotly_chart(fig)
          ```
-       - Add hover tooltips: `fig.update_traces(hovertemplate='Value: %{y:.2f}')`
+       - Add hover tooltips: `fig.update_traces(hovertemplate='Value: %y:.2f')`
     
     7. ML ANALYSIS VISUALIZATIONS:
        - Feature importance: 
@@ -453,14 +453,14 @@ class DataAnalysisAgent(LLMAgent):
     
     | Analysis Type | Advanced Code Pattern |
     |---------------|-------------------|
-    | Distribution | `sns.histplot(df['column'], kde=True, stat='density', color='#6c5ce7', alpha=0.7, line_kws={'linewidth': 2})` |
-    | Count/Category | `sns.countplot(y=df['column'].value_counts().index, data=df, palette='viridis', order=df['column'].value_counts().index)` |
-    | Correlation | `sns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1, linewidths=.5, cbar_kws={"shrink": .8})` |
-    | Time Series | `sns.lineplot(x='date_column', y='value_column', data=df, marker='o', dashes=False, errorbar=('ci', 95))` |
-    | Comparison | `sns.barplot(x='category', y='value', data=df, palette='viridis', hue='group', errorbar=('ci', 95), alpha=0.8)` |
+    | Distribution | `sns.histplot(df['column'], kde=True, stat='density', color='#6c5ce7', alpha=0.7)` |
+    | Count/Category | `sns.countplot(y=df['column'].value_counts().index, data=df, palette='viridis')` |
+    | Correlation | `sns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1, linewidths=.5)` |
+    | Time Series | `sns.lineplot(x='date_column', y='value_column', data=df, marker='o', dashes=False)` |
+    | Comparison | `sns.barplot(x='category', y='value', data=df, palette='viridis', hue='group', alpha=0.8)` |
     | Relationship | `sns.scatterplot(x='column1', y='column2', hue='category', size='size_var', data=df, sizes=(20, 200), palette='plasma')` |
     | Multi-Variable | `sns.pairplot(df[['col1', 'col2', 'col3']], hue='category', height=2.5, corner=True, diag_kind='kde', palette='viridis')` |
-    | Grouped Analysis | `df.groupby(['cat1', 'cat2']).agg({'value':'mean'}).unstack().plot(kind='bar', stacked=True, colormap='viridis')` |
+    | Grouped Analysis | `df.groupby(['cat1', 'cat2']).mean().unstack().plot(kind='bar', stacked=True, colormap='viridis')` |
     | Numerical Distribution | `sns.violinplot(x='category', y='value', data=df, inner='quartile', palette='rocket')` |
     | Before/After | `sns.catplot(x='before_after', y='value', data=df, kind='point', height=6, aspect=1.5, capsize=0.2, join=True)` |
     
@@ -506,7 +506,7 @@ class DataAnalysisAgent(LLMAgent):
        
        # Visualize clusters
        plt.figure(figsize=(12, 8))
-       sns.scatterplot(x=X.columns[0], y=X.columns[1], hue='cluster', data=df, palette='viridis', s=100)
+       sns.scatterplot(x=numeric_cols[0], y=numeric_cols[1], hue='cluster', data=df, palette='viridis', s=100)
        plt.title('KMeans Clustering Results', fontsize=14, fontweight='bold')
        ```
        
@@ -534,7 +534,7 @@ class DataAnalysisAgent(LLMAgent):
        # Plot
        plt.figure(figsize=(12, 8))
        sns.scatterplot(x='PC1', y='PC2', hue='target', data=pca_df, palette='viridis', s=100)
-       plt.title(f'PCA (Explained Variance: {pca.explained_variance_ratio_.sum():.2%})', fontweight='bold', fontsize=14)
+       plt.title('PCA Dimensionality Reduction', fontweight='bold', fontsize=14)
        ```
        
     4. Correlation analysis with insights:
@@ -548,13 +548,16 @@ class DataAnalysisAgent(LLMAgent):
        # Create heatmap with advanced styling
        plt.figure(figsize=(14, 10))
        sns.heatmap(corr, mask=mask, annot=True, fmt='.2f', cmap='coolwarm',
-                   linewidths=0.5, cbar_kws={"shrink": .8}, vmin=-1, vmax=1)
+                   linewidths=0.5, vmin=-1, vmax=1)
        
-       # Highlight strongest correlations
-       top_corr = corr.unstack().sort_values(ascending=False)[corr.unstack() < 1].head(5)
+       # Find strongest correlations
+       corr_unstack = corr.unstack()
+       corr_sorted = corr_unstack.sort_values(ascending=False)
+       corr_filtered = corr_sorted[corr_sorted < 1]
+       top_pairs = list(zip(corr_filtered.index, corr_filtered.values))[:5]
+       
        plt.title('Correlation Matrix Heatmap', fontsize=16, fontweight='bold')
-       plt.suptitle(f'Top correlation: {top_corr.index[0][0]} & {top_corr.index[0][1]} ({top_corr.values[0]:.2f})', 
-                   fontsize=12, y=0.93)
+       plt.tight_layout()
        ```
     
     Always follow this pattern for creating any visualization:
