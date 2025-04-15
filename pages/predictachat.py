@@ -104,7 +104,7 @@ class ChatPredicta:
         documents = loader.load()
         
         # Split text into chunks
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        text_splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=128)
         chunks = text_splitter.split_documents(documents)
         
         # Initialize embeddings model
@@ -126,7 +126,7 @@ class ChatPredicta:
             return True
         return False
     
-    def search_vector_store(self, query, k=3):
+    def search_vector_store(self, query, k=5):
         """Search the vector store for relevant documents"""
         if self.vector_store:
             docs = self.vector_store.similarity_search(query, k=k)
