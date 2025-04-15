@@ -108,7 +108,7 @@ class ChatPredicta:
         chunks = text_splitter.split_documents(documents)
         
         # Initialize embeddings model
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        embeddings = HuggingFaceEmbeddings(model_name="intfloat/e5-small")
         
         # Create vector store
         self.vector_store = FAISS.from_documents(chunks, embeddings)
