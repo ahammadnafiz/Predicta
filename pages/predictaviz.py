@@ -268,9 +268,27 @@ class LLMVisualizer:
         The dataframe 'df' has the following columns:
         {columns_info}
         
-        Return ONLY valid Python code (using matplotlib, seaborn or pandas plotting) that will run directly.
-        Include proper labels, titles, and use plt.tight_layout() for better display.
-        Do not include explanations or markdown - just the Python code.
+        Return ONLY valid Python code using advanced visualization techniques with matplotlib, seaborn, plotly or pandas plotting.
+        
+        Focus on creating BEAUTIFUL and PROFESSIONAL visualizations with:
+        - Modern color palettes (use viridis, plasma, cubehelix, or custom palettes)
+        - Clear and informative titles, subtitles, and annotations
+        - Proper axis labels with units if applicable
+        - Grid styling that enhances readability
+        - Appropriate figure sizes (use plt.figure(figsize=(12, 8)) for better proportions)
+        - Data highlights for important points/outliers
+        - Professional themes (use sns.set_theme(style="whitegrid") or similar)
+        - Legend placement that doesn't obscure data
+        
+        Include advanced styling like:
+        - plt.tight_layout() for proper spacing
+        - Custom fonts where appropriate
+        - Data labels when they add value
+        - Color gradients for continuous variables
+        - Appropriate transparency for overlapping elements
+        
+        DO NOT include plt.show() in your code - Streamlit will display the figure automatically.
+        DO NOT include explanations or markdown - just the Python code that will run directly.
         """
         
         try:
@@ -337,75 +355,244 @@ class DataAnalysisAgent(LLMAgent):
     SYSTEM_TEMPLATE = LLMAgent.COMMON_SYSTEM_TEMPLATE + """
     7. IMPORTANT: Only attempt to create a visualization ONCE. Do not retry if you don't see the output immediately.
        The visualization will be shown to the user automatically after your code executes.
-    8. For common plots:
-       - For counts/distributions: `df['column'].value_counts().plot(kind='bar')`
-       - For pie charts: `df['column'].value_counts().plot(kind='pie', autopct='%1.1f%%')`
-       - For time series: `df.plot(x='date_column', y='value_column')`
-       - For scatter plots: `df.plot.scatter(x='column1', y='column2')`
-       - For heatmaps: `sns.heatmap(df.corr(), annot=True, cmap='coolwarm')`
-       - For stacked bars: `pd.crosstab(df['col1'], df['col2']).plot(kind='bar', stacked=True)`
+       
+    VISUALIZATION EXCELLENCE GUIDE:
     
-    First provide a brief text analysis, then include executable Python code for visualization.
-    After executing the visualization, provide a brief interpretation of the results and finalize your answer.
+    When creating visualizations, strive for professional quality with these enhancements:
     
-    When generating visualization code, use the python_repl_ast tool to execute Python code.
-    To use this tool, specify the action as "python_repl_ast" followed by the code to execute.
-    For example:
+    1. ADVANCED COLOR SCHEMES:
+       - Use modern palettes: `sns.color_palette("viridis", "plasma", "cubehelix", "mako", "rocket")`
+       - Create custom palettes: `custom_palette = sns.color_palette("husl", 8)` 
+       - Use color-blind friendly palettes: `sns.set_palette("colorblind")`
+       - Apply gradients for continuous variables: `cmap=plt.cm.viridis`
     
-    Action: python_repl_ast
-    Action Input: 
-    **ALWAYS include these standard imports**:
-   ```python
-   import pandas as pd
-   import numpy as np
-   import matplotlib.pyplot as plt
-   import seaborn as sns
-   ```
-   
-   Visualization recipe guide:
-    Analysis Type | Recommended Code Pattern
-    ------------- | -----------------------
-    Distribution | sns.histplot(df['column'], kde=True)
-    Count/Category | sns.countplot(y=df['column'].sort_values(), color='#3498db')
-    Correlation | sns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1)
-    Time Series | sns.lineplot(x='date_column', y='value_column', data=df, marker='o')
-    Comparison | sns.barplot(x='category', y='value', data=df, palette='viridis')
-    Relationship | sns.scatterplot(x='column1', y='column2', hue='category', data=df)
-    Multi-Variable | sns.pairplot(df[['col1', 'col2', 'col3']], hue='category')
-    Grouped Analysis | df.groupby('category')['value'].mean().sort_values(ascending=False).plot(kind='bar')
-   
-   Create professional visualizations with:
-
-    Descriptive titles, axis labels, and legends
-    Appropriate color schemes (use colorblind-friendly palettes)
-    Proper figure sizing and layout adjustments
-    Data annotations where helpful
+    2. PROFESSIONAL STYLING:
+       - Set modern themes: `sns.set_theme(style="whitegrid", font_scale=1.1)`
+       - Or: `plt.style.use('ggplot')` / `plt.style.use('fivethirtyeight')`
+       - Add subtle grids: `plt.grid(True, alpha=0.3, linestyle='--')`
+       - Use larger figure sizes: `plt.figure(figsize=(12, 8))`
+       - Apply background styling: `fig.patch.set_facecolor('#F8F9F9')`
     
-    Follow this pattern for all visualizations:
-    python# Set styling options
-    plt.figure(figsize=(10, 6))
-    sns.set_style('whitegrid')
-
-    # Create visualization
-    [VISUALIZATION CODE]
-
-    # Add appropriate labels and styling
-    plt.title('Descriptive Title', fontsize=14, fontweight='bold')
-    plt.xlabel('X-Axis Label', fontsize=12)
-    plt.ylabel('Y-Axis Label', fontsize=12)
+    3. ENHANCED TEXT ELEMENTS:
+       - Multi-level titles: 
+         ```
+         plt.title('Main Title', fontsize=16, fontweight='bold')
+         plt.suptitle('Subtitle with Context', fontsize=12, y=0.92)
+         ```
+       - Styled axis labels: `plt.xlabel('Data Range (units)', fontsize=12, fontweight='medium')`
+       - Custom tick formatting: `plt.xticks(rotation=45, ha='right', fontsize=10)`
+       - Add detailed annotations:
+         ```
+         for i, value in enumerate(values):
+             plt.annotate(f'{value:.1f}', (i, value), ha='center', va='bottom', fontsize=9)
+         ```
+    
+    4. ADVANCED VISUALIZATION TECHNIQUES:
+       - Dual Y-axes for different scales: `ax2 = ax.twinx()`
+       - Combination plots (bar + line): 
+         ```
+         ax1 = sns.barplot(...)
+         ax2 = ax1.twinx()
+         sns.lineplot(..., ax=ax2)
+         ```
+       - Subplots for related data: `fig, axes = plt.subplots(2, 2, figsize=(15, 10))`
+       - Highlight specific data points:
+         ```
+         plt.scatter(x[highlight], y[highlight], s=100, facecolors='none', edgecolors='red')
+         ```
+       - Add trend lines: `sns.regplot(x='x', y='y', data=df, scatter=False, color='red')`
+       
+    5. STATISTICAL INSIGHTS:
+       - Add statistical annotations: `sns.boxplot(...).annotate('p < 0.05', xy=(1.5, max_value))`
+       - Show confidence intervals: `sns.lineplot(..., ci=95)`
+       - Add distribution curves to histograms: `sns.histplot(..., kde=True)`
+       - Show correlation values on heatmaps: `sns.heatmap(corr, annot=True, fmt='.2f')`
+       
+    6. INTERACTIVE ELEMENTS (with plotly when applicable):
+       - Create interactive visuals: 
+         ```python
+         import plotly.express as px
+         fig = px.scatter(df, x='x', y='y', color='category', hover_name='name')
+         st.plotly_chart(fig)
+         ```
+       - Add hover tooltips: `fig.update_traces(hovertemplate='Value: %{y:.2f}')`
+    
+    7. ML ANALYSIS VISUALIZATIONS:
+       - Feature importance: 
+         ```python
+         from sklearn.ensemble import RandomForestRegressor
+         model = RandomForestRegressor()
+         model.fit(X, y)
+         feat_imp = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+         sns.barplot(x=feat_imp.values, y=feat_imp.index)
+         ```
+       - Clustering visualization:
+         ```python
+         from sklearn.cluster import KMeans
+         kmeans = KMeans(n_clusters=3).fit(X)
+         df['cluster'] = kmeans.labels_
+         sns.scatterplot(x='feature1', y='feature2', hue='cluster', data=df, palette='viridis')
+         ```
+       - Decision boundaries:
+         ```python
+         from sklearn.svm import SVC
+         from mlxtend.plotting import plot_decision_regions
+         model = SVC().fit(X, y)
+         plot_decision_regions(X.values, y.values, clf=model)
+         ```
+       - Learning curves:
+         ```python
+         from sklearn.model_selection import learning_curve
+         train_sizes, train_scores, test_scores = learning_curve(model, X, y)
+         plt.plot(train_sizes, train_scores.mean(axis=1), label='Training score')
+         plt.plot(train_sizes, test_scores.mean(axis=1), label='Test score')
+         ```
+         
+    VISUALIZATION RECIPE GUIDE:
+    Choose the right visualization for the analysis:
+    
+    | Analysis Type | Advanced Code Pattern |
+    |---------------|-------------------|
+    | Distribution | `sns.histplot(df['column'], kde=True, stat='density', color='#6c5ce7', alpha=0.7, line_kws={'linewidth': 2})` |
+    | Count/Category | `sns.countplot(y=df['column'].value_counts().index, data=df, palette='viridis', order=df['column'].value_counts().index)` |
+    | Correlation | `sns.heatmap(df.corr(), annot=True, cmap='coolwarm', vmin=-1, vmax=1, linewidths=.5, cbar_kws={"shrink": .8})` |
+    | Time Series | `sns.lineplot(x='date_column', y='value_column', data=df, marker='o', dashes=False, errorbar=('ci', 95))` |
+    | Comparison | `sns.barplot(x='category', y='value', data=df, palette='viridis', hue='group', errorbar=('ci', 95), alpha=0.8)` |
+    | Relationship | `sns.scatterplot(x='column1', y='column2', hue='category', size='size_var', data=df, sizes=(20, 200), palette='plasma')` |
+    | Multi-Variable | `sns.pairplot(df[['col1', 'col2', 'col3']], hue='category', height=2.5, corner=True, diag_kind='kde', palette='viridis')` |
+    | Grouped Analysis | `df.groupby(['cat1', 'cat2']).agg({'value':'mean'}).unstack().plot(kind='bar', stacked=True, colormap='viridis')` |
+    | Numerical Distribution | `sns.violinplot(x='category', y='value', data=df, inner='quartile', palette='rocket')` |
+    | Before/After | `sns.catplot(x='before_after', y='value', data=df, kind='point', height=6, aspect=1.5, capsize=0.2, join=True)` |
+    
+    ML INSIGHTS GUIDE:
+    Incorporate these ML techniques when appropriate:
+    
+    1. Automatic feature importance:
+       ```python
+       from sklearn.ensemble import RandomForestClassifier
+       X = df.drop('target', axis=1)
+       y = df['target']
+       model = RandomForestClassifier(n_estimators=100, random_state=42)
+       model.fit(X, y)
+       importances = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+       sns.barplot(x=importances.values, y=importances.index, palette='viridis')
+       plt.title('Feature Importance', fontsize=14, fontweight='bold')
+       ```
+       
+    2. Clustering analysis:
+       ```python
+       from sklearn.preprocessing import StandardScaler
+       from sklearn.cluster import KMeans
+       # Select numeric columns
+       numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+       X = df[numeric_cols]
+       X_scaled = StandardScaler().fit_transform(X)
+       
+       # Find optimal k using elbow method
+       inertia = []
+       for k in range(1, 11):
+           kmeans = KMeans(n_clusters=k, random_state=42)
+           kmeans.fit(X_scaled)
+           inertia.append(kmeans.inertia_)
+       
+       # Plot elbow curve
+       plt.figure(figsize=(10, 6))
+       plt.plot(range(1, 11), inertia, marker='o', linestyle='--')
+       plt.title('Elbow Method For Optimal k', fontsize=14, fontweight='bold')
+       
+       # Apply clustering with optimal k
+       kmeans = KMeans(n_clusters=3, random_state=42)
+       df['cluster'] = kmeans.fit_predict(X_scaled)
+       
+       # Visualize clusters
+       plt.figure(figsize=(12, 8))
+       sns.scatterplot(x=X.columns[0], y=X.columns[1], hue='cluster', data=df, palette='viridis', s=100)
+       plt.title('KMeans Clustering Results', fontsize=14, fontweight='bold')
+       ```
+       
+    3. Dimensionality reduction for visualization:
+       ```python
+       from sklearn.decomposition import PCA
+       from sklearn.preprocessing import StandardScaler
+       
+       # Prepare data
+       numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+       X = df[numeric_cols]
+       X_scaled = StandardScaler().fit_transform(X)
+       
+       # Apply PCA
+       pca = PCA(n_components=2)
+       components = pca.fit_transform(X_scaled)
+       
+       # Create dataframe with principal components
+       pca_df = pd.DataFrame(data=components, columns=['PC1', 'PC2'])
+       
+       # Add target or category if available
+       if 'target' in df.columns:
+           pca_df['target'] = df['target']
+           
+       # Plot
+       plt.figure(figsize=(12, 8))
+       sns.scatterplot(x='PC1', y='PC2', hue='target', data=pca_df, palette='viridis', s=100)
+       plt.title(f'PCA (Explained Variance: {pca.explained_variance_ratio_.sum():.2%})', fontweight='bold', fontsize=14)
+       ```
+       
+    4. Correlation analysis with insights:
+       ```python
+       # Calculate correlation matrix
+       corr = df.select_dtypes(include=['float64', 'int64']).corr()
+       
+       # Create mask for upper triangle
+       mask = np.triu(np.ones_like(corr, dtype=bool))
+       
+       # Create heatmap with advanced styling
+       plt.figure(figsize=(14, 10))
+       sns.heatmap(corr, mask=mask, annot=True, fmt='.2f', cmap='coolwarm',
+                   linewidths=0.5, cbar_kws={"shrink": .8}, vmin=-1, vmax=1)
+       
+       # Highlight strongest correlations
+       top_corr = corr.unstack().sort_values(ascending=False)[corr.unstack() < 1].head(5)
+       plt.title('Correlation Matrix Heatmap', fontsize=16, fontweight='bold')
+       plt.suptitle(f'Top correlation: {top_corr.index[0][0]} & {top_corr.index[0][1]} ({top_corr.values[0]:.2f})', 
+                   fontsize=12, y=0.93)
+       ```
+    
+    Always follow this pattern for creating any visualization:
+    
+    ```python
+    # Standard imports
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    # Set styling options
+    plt.figure(figsize=(12, 8))
+    sns.set_theme(style='whitegrid', font_scale=1.1)
+    
+    # Create visualization with your chosen technique
+    # [VISUALIZATION CODE HERE]
+    
+    # Add descriptive titles and labels
+    plt.title('Descriptive and Informative Title', fontsize=16, fontweight='bold')
+    plt.xlabel('X-Axis Label with Units', fontsize=12)
+    plt.ylabel('Y-Axis Label with Units', fontsize=12)
+    
+    # Add styling enhancements
     plt.xticks(rotation=45, ha='right')
+    plt.grid(True, alpha=0.3, linestyle='--')
     plt.tight_layout()
+    ```
     
-    Your output will be displayed automatically. After using the python_repl_ast tool ONCE, 
-    proceed directly to interpreting the results and providing your final answer.
-    
-    
-    EXECUTION INSTRUCTIONS
+    IMPORTANT EXECUTION INSTRUCTIONS:
     When generating visualization code, use the python_repl_ast tool with this exact format:
+    
     Action: python_repl_ast
     Action Input:
     [YOUR COMPLETE PYTHON CODE]
-    IMPORTANT: Only attempt to create a visualization ONCE. The framework will display the output automatically.
+    
+    REMEMBER: Only attempt to create a visualization ONCE. The framework will display the output automatically.
+    After the visualization is shown, proceed to interpreting the results and providing insights.
 """
     
     def __init__(self, df, response_processor, groq_api_key=None):
