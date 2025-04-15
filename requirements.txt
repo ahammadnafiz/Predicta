@@ -5,6 +5,7 @@ langchain-community
 langchain-core
 langchain-groq
 langchain-text-splitters
+transformers>=4.39.0
 langchain-huggingface
 langsmith
 matplotlib
@@ -24,8 +25,8 @@ urllib3
 xgboost
 category_encoders
 imbalanced-learn
-torch==2.0.1
-torchvision==0.15.2
+torch>=2.1.0
+torchvision>=0.16.0
 Pillow
 opencv-python
 opencv-python-headless
@@ -33,7 +34,6 @@ ultralytics
 faiss-cpu
 sentence-transformers
 chardet
-transformers==4.30.2
 python-dateutil
 optuna
 plotly
