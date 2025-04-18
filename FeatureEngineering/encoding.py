@@ -1,8 +1,7 @@
-import category_encoders as ce
 import pandas as pd
 import streamlit as st
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
+import numpy as np
 from show_code import ShowCode
 
 
@@ -49,10 +48,12 @@ class DataEncoder:
 
     def target_encoding(self, col, target_col):
         if len(self.data[col].unique()) > 2:
-            encoder = ce.TargetEncoder(cols=[col])
-            self.data[col] = encoder.fit_transform(
-                self.data[col], self.data[target_col]
-            )
+            # Custom implementation of target encoding without category_encoders
+            # Calculate the mean of target variable for each category
+            target_means = self.data.groupby(col)[target_col].mean()
+            
+            # Replace each category with its corresponding target mean
+            self.data[col] = self.data[col].map(target_means)
         return self.data
 
     def frequency_encoding(self, col):
@@ -61,8 +62,27 @@ class DataEncoder:
         return self.data
 
     def binary_encoding(self, col):
-        encoder = ce.BinaryEncoder(cols=[col])
-        self.data = encoder.fit_transform(self.data)
+        # Custom implementation of binary encoding without category_encoders
+        # Get unique values
+        unique_values = self.data[col].unique()
+        
+        # Create mapping dictionary
+        mapping_dict = {val: format(i, 'b').zfill(len(bin(len(unique_values))[2:])) 
+                        for i, val in enumerate(unique_values)}
+        
+        # Apply binary encoding
+        max_digits = max(len(value) for value in mapping_dict.values())
+        
+        # Create binary columns
+        for digit_idx in range(max_digits):
+            col_name = f"{col}_bin_{digit_idx}"
+            self.data[col_name] = self.data[col].map(
+                lambda x: int(mapping_dict[x][digit_idx]) if x in mapping_dict else None
+            )
+            
+        # Drop original column if needed
+        # self.data.drop(columns=[col], inplace=True)
+        
         return self.data
 
     def encoder(self):
