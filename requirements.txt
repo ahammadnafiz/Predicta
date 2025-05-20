@@ -43,3 +43,4 @@ tabulate
 missingno
 fancyimpute
 statsmodels
+tensorflow
