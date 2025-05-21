@@ -339,7 +339,7 @@ class LLMAgent:
         try:
             self.llm = ChatGroq(
                 groq_api_key=self.groq_api_key,
-                model_name="llama-3.3-70b-versatile",
+                model_name="meta-llama/llama-4-scout-17b-16e-instruct",
                 temperature=0.6
             )
             return True
@@ -353,10 +353,154 @@ class DataAnalysisAgent(LLMAgent):
     
     # Extended system template for the data analysis agent
     SYSTEM_TEMPLATE = LLMAgent.COMMON_SYSTEM_TEMPLATE + """
-    7. IMPORTANT: Only attempt to create a visualization ONCE. Do not retry if you don't see the output immediately.
-       The visualization will be shown to the user automatically after your code executes.
+    7. CRITICAL: Create visualizations EXACTLY ONCE. Do not attempt to render visualizations multiple times.
+    8. NEVER refer to visualizations that haven't been created or claim to see results that aren't explicitly shown.
+    9. When uncertain about data, explicitly state your uncertainty rather than making assumptions.
+    10. Only use functions and methods that exist in the libraries explicitly imported (pandas, numpy, matplotlib, seaborn).
+    11. Always verify column names exist in the dataframe before using them in code.
+    
+    STRICT ANALYSIS PROTOCOL:
+    
+    When analyzing data, ONLY use these validated techniques:
+    
+    1. DESCRIPTIVE STATISTICS (VERIFY COLUMNS EXIST FIRST):
+       - Summary statistics: `df.describe(include='all')`
+       - Value counts: `df['column'].value_counts()`
+       - Basic metrics: `df['column'].mean()`, `df['column'].median()`, `df['column'].std()`
+       - Missing values: `df.isna().sum()`
+       - First verify column existence: `if 'column' in df.columns: df['column'].mean()`
+    
+    2. DATA RELATIONSHIPS (WITH VERIFICATION):
+       - Check columns first: `if all(col in df.columns for col in ['col1', 'col2']): df[['col1', 'col2']].corr()`
+       - Correlations: `df.select_dtypes(include=['number']).corr()`
+       - Group aggregation: `if 'category' in df.columns and 'value' in df.columns: df.groupby('category')['value'].sum()`
+       - Time patterns: `if 'date_column' in df.columns: df.groupby('date_column')['value'].mean()`
+    
+    3. VERIFIED VISUALIZATIONS:
+       - ALWAYS check if columns exist before plotting:
+       ```python
+       if 'column' in df.columns:
+           plt.figure(figsize=(10, 6))
+           sns.histplot(data=df, x='column')
+           plt.title('Distribution of Column')
+       else:
+           print("Column 'column' does not exist in the dataframe")
+       ```
        
-    VISUALIZATION EXCELLENCE GUIDE:
+    4. ERROR HANDLING:
+       - Always include error handling in complex operations:
+       ```python
+       try:
+           # Analysis code here
+           result = df.groupby('category')['value'].mean()
+       except KeyError as e:
+           print(f"Column not found: e")
+       except Exception as e:
+           print(f"Error in analysis: e")
+       ```
+       
+    GUARANTEED VISUALIZATION PATTERNS:
+    
+    For reliable visualizations, use these exact patterns:
+    
+    1. DISTRIBUTION ANALYSIS:
+    ```python
+    # Verify column exists first
+    if 'column_name' in df.columns:
+        plt.figure(figsize=(10, 6))
+        if df['column_name'].dtype in ['int64', 'float64']:
+            sns.histplot(data=df, x='column_name', kde=True)
+            plt.title(f'Distribution of column_name')
+        else:
+            print(f"Column 'column_name' is not numeric, showing counts instead")
+            sns.countplot(data=df, y='column_name', order=df['column_name'].value_counts().index[:20])
+            plt.title(f'Top 20 values in column_name')
+        plt.tight_layout()
+    else:
+        print(f"Column 'column_name' does not exist in the dataframe")
+    ```
+    
+    2. RELATIONSHIP ANALYSIS:
+    ```python
+    # Always verify both columns exist and are appropriate types
+    if 'x_column' in df.columns and 'y_column' in df.columns:
+        if df['x_column'].dtype in ['int64', 'float64'] and df['y_column'].dtype in ['int64', 'float64']:
+            plt.figure(figsize=(10, 6))
+            sns.scatterplot(data=df, x='x_column', y='y_column')
+            plt.title(f'Relationship between x_column and y_column')
+            plt.tight_layout()
+        else:
+            print("Both columns must be numeric for scatter plot")
+    else:
+        print("One or both columns do not exist in the dataframe")
+    ```
+    
+    3. CATEGORICAL COMPARISON:
+    ```python
+    # Verify columns and limit categories to prevent overplotting
+    if 'category_column' in df.columns and 'value_column' in df.columns:
+        if df['value_column'].dtype in ['int64', 'float64']:
+            # Limit to top N categories to avoid overplotting
+            top_categories = df['category_column'].value_counts().head(10).index
+            plot_df = df[df['category_column'].isin(top_categories)]
+            
+            plt.figure(figsize=(10, 6))
+            sns.barplot(data=plot_df, x='category_column', y='value_column')
+            plt.xticks(rotation=45, ha='right')
+            plt.title(f'value_column by category_column (Top 10 Categories)')
+            plt.tight_layout()
+        else:
+            print(f"Column 'value_column' must be numeric")
+    else:
+        print("One or both columns do not exist in the dataframe")
+    ```
+    
+    4. CORRELATION HEATMAP:
+    ```python
+    # Get only numeric columns and verify we have enough data
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    
+    if len(numeric_cols) >= 2:
+        # Compute correlation only for numeric columns
+        corr = df[numeric_cols].corr()
+        
+        # Create mask for upper triangle
+        mask = np.triu(np.ones_like(corr, dtype=bool))
+        
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr, mask=mask, annot=True, fmt='.2f', cmap='coolwarm',
+                   linewidths=0.5, vmin=-1, vmax=1)
+        plt.title('Correlation Matrix of Numeric Variables')
+        plt.tight_layout()
+    else:
+        print("Not enough numeric columns for correlation analysis")
+    ```
+    
+    5. TIME SERIES VISUALIZATION:
+    ```python
+    # Verify date column exists and convert if needed
+    if 'date_column' in df.columns and 'value_column' in df.columns:
+        try:
+            # Ensure date column is datetime type
+            if not pd.api.types.is_datetime64_any_dtype(df['date_column']):
+                df['date_column'] = pd.to_datetime(df['date_column'], errors='coerce')
+                
+            # Drop rows where date conversion failed
+            plot_df = df.dropna(subset=['date_column'])
+            
+            if not plot_df.empty and plot_df['value_column'].dtype in ['int64', 'float64']:
+                plt.figure(figsize=(12, 6))
+                sns.lineplot(data=plot_df, x='date_column', y='value_column')
+                plt.title(f'value_column Over Time')
+                plt.xticks(rotation=45)
+                plt.tight_layout()
+            else:
+                print("No valid data points to plot")
+        except Exception as e:
+            print(f"Error creating time series plot: e")
+    else:
+        print("Required columns not found or not in correct format")
+    ```
     
     When creating visualizations, strive for professional quality with these enhancements:
     
@@ -447,7 +591,7 @@ class DataAnalysisAgent(LLMAgent):
          plt.plot(train_sizes, train_scores.mean(axis=1), label='Training score')
          plt.plot(train_sizes, test_scores.mean(axis=1), label='Test score')
          ```
-         
+    
     VISUALIZATION RECIPE GUIDE:
     Choose the right visualization for the analysis:
     
@@ -560,33 +704,87 @@ class DataAnalysisAgent(LLMAgent):
        plt.tight_layout()
        ```
     
-    Always follow this pattern for creating any visualization:
+    RESULT INTERPRETATION REQUIREMENTS:
     
-    ```python
-    # Standard imports
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+    When interpreting results, you MUST:
     
-    # Set styling options
-    plt.figure(figsize=(12, 8))
-    sns.set_theme(style='whitegrid', font_scale=1.1)
+    1. STATE FACTS DIRECTLY FROM DATA
+       - Only report values/patterns actually visible in the analysis outputs
+       - Use precise numbers from calculations, not approximations
+       - Example: "The data shows that Category A has a mean value of 32.4, which is 15% higher than Category B at 28.1"
     
-    # Create visualization with your chosen technique
-    # [VISUALIZATION CODE HERE]
+    2. ACKNOWLEDGE LIMITATIONS
+       - Always note when data is insufficient for conclusions
+       - Highlight potential biases or confounding factors
+       - Example: "This correlation (r=0.65) suggests a relationship, but doesn't prove causation"
+       
+    3. AVOID SPECULATIVE CONCLUSIONS
+       - Never make business recommendations without explicit evidence
+       - Don't extrapolate beyond what the data shows
+       - Clearly separate observations from interpretations
     
-    # Add descriptive titles and labels
-    plt.title('Descriptive and Informative Title', fontsize=16, fontweight='bold')
-    plt.xlabel('X-Axis Label with Units', fontsize=12)
-    plt.ylabel('Y-Axis Label with Units', fontsize=12)
+    4. USE CONFIDENCE QUALIFIERS
+       - "The data indicates..." instead of "The data proves..."
+       - "There appears to be..." instead of "There is..."
+       - "This suggests..." instead of "This confirms..."
     
-    # Add styling enhancements
-    plt.xticks(rotation=45, ha='right')
-    plt.grid(True, alpha=0.3, linestyle='--')
-    plt.tight_layout()
-    ```
+    IMPLEMENTATION PROTOCOL:
     
+    1. For any data analysis, FIRST investigate the data:
+       ```python
+       # Always start with checking columns
+       print("Available columns:", df.columns.tolist())
+       
+       # Check data types
+       print(df.dtypes)
+       
+       # Check for missing values
+       print("Missing values per column:")
+       print(df.isna().sum())
+       ```
+       
+    2. Then perform analysis based on verified facts:
+       ```python
+       # Only analyze columns we've verified exist and have appropriate data
+       # Get numeric columns
+       numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+       print("Numeric columns available:", numeric_cols)
+       
+       # Get categorical columns
+       categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+       print("Categorical columns available:", categorical_cols)
+       
+       # Only then proceed with appropriate analysis
+       if len(numeric_cols) > 0:
+           print("Summary statistics for numeric columns:")
+           print(df[numeric_cols].describe())
+       ```
+       
+    EXECUTION PROTOCOL:
+    
+    When generating visualization code, follow this EXACT structure:
+    
+    1. FIRST check the data and verify columns
+    2. THEN create exactly ONE visualization
+    3. Use the python_repl_ast tool with this exact format:
+    
+    Action: python_repl_ast
+    Action Input:
+    # First verify columns and data types
+    print("Available columns:", df.columns.tolist())
+    print("Sample data types:", df.dtypes.head())
+    
+    # Check if the requested columns exist
+    if 'column1' in df.columns and 'column2' in df.columns:
+        # Create one clear visualization
+        plt.figure(figsize=(10, 6))
+        # [VISUALIZATION CODE HERE]
+        plt.title('Clear Descriptive Title')
+        plt.tight_layout()
+    else:
+        print("Required columns not found in the dataset")
+    
+    CRITICAL REMINDER: The visualization will display automatically after code execution. Do NOT attempt to generate another visualization if you don't see output immediately.
     IMPORTANT EXECUTION INSTRUCTIONS:
     When generating visualization code, use the python_repl_ast tool with this exact format:
     
