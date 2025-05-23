@@ -44,3 +44,5 @@ missingno
 fancyimpute
 statsmodels
 tensorflow
+openpyxl
+xlrd
