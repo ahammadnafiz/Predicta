@@ -19,7 +19,7 @@ pydantic_core
 scikit-learn
 scipy
 seaborn
-streamlit>=1.28.0
+streamlit
 streamlit-code-editor
 urllib3
 xgboost
@@ -27,6 +27,8 @@ category_encoders
 imbalanced-learn
 torch>=2.1.0
 torchvision>=0.16.0
+Pillow
+opencv-python
 opencv-python-headless
 ultralytics
 faiss-cpu
@@ -34,9 +36,12 @@ sentence-transformers
 chardet
 python-dateutil
 optuna
+plotly
+matplotlib
 langchain-experimental
 tabulate
 missingno
+fancyimpute
 statsmodels
 tensorflow
 openpyxl
