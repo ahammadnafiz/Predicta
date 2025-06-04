@@ -1,4 +1,4 @@
-![Predicta](assets/Predicta_banner.png)
+![Predicta](predicta/assets/Predicta_banner.png)
 
 <p align="center">
    <a href="https://www.python.org/">
@@ -15,6 +15,9 @@
    </a>
    <a href="https://github.com/ahammadnafiz/Predicta/stargazers">
       <img src="https://img.shields.io/github/stars/ahammadnafiz/Predicta" alt="GitHub Stars">
+   </a>
+   <a href="https://pypi.org/project/predicta/">
+      <img src="https://img.shields.io/badge/package-professional-orange.svg" alt="Professional Package">
    </a>
 </p>
 
@@ -34,11 +37,13 @@
 </p>
 
 
-> 🚀 Accelerate your data science workflow with an all-in-one machine learning platform
+> 🚀 Professional Machine Learning Platform for End-to-End Data Science Workflows
 
-Predicta is a powerful end-to-end data analysis and machine learning toolkit that transforms complex data science workflows into intuitive, streamlined processes. From initial data exploration to model deployment, Predicta empowers both novice and experienced data scientists to build robust predictive models efficiently.
+Predicta is a comprehensive, enterprise-grade machine learning platform that transforms complex data science workflows into intuitive, streamlined processes. Built with a modular architecture and professional coding standards, Predicta empowers data scientists to build, deploy, and maintain robust predictive models efficiently.
 
-![Predicta Dashboard](assets/predictaapp_streamlitapp.jpeg)
+**🎯 Now featuring professional package structure with CLI interface, centralized configuration, and modular architecture!**
+
+![Predicta Dashboard](predicta/assets/predictaapp_streamlitapp.jpeg)
 
 ## ✨ Features
 
@@ -66,6 +71,16 @@ Predicta is a powerful end-to-end data analysis and machine learning toolkit tha
 - **API Integration**: RESTful API for seamless integration
 - **Version Control**: Track model versions and experiments
 
+### 🏗️ Professional Package Features
+- **CLI Interface**: Command-line tools for easy management
+- **Modular Architecture**: Self-contained, reusable components
+- **Centralized Configuration**: Professional settings management
+- **Advanced Logging**: Comprehensive logging with error filtering
+- **Asset Management**: Proper handling of static resources
+- **Session Management**: Robust temporary file handling
+- **Import System**: Professional absolute import structure
+- **Package Installation**: Standard pip-installable package
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -88,15 +103,78 @@ source venv/bin/activate  # Linux/Mac
 .\venv\Scripts\activate  # Windows
 ```
 
-3. Install dependencies:
+3. Install the package:
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-4. Launch Predicta:
+### Usage
+
+#### Command Line Interface
 ```bash
-streamlit run predicta.py
+# Launch the Streamlit application
+predicta run
+
+# Check version
+predicta version
+
+# View configuration
+predicta config
+
+# Clean temporary files
+predicta clean
 ```
+
+#### Direct Python Usage
+```bash
+# Launch Streamlit application directly
+python -m predicta.app.main
+
+# Or using streamlit
+streamlit run predicta/app/main.py
+```
+
+## 📁 Project Structure
+
+```
+predicta/
+├── __init__.py                    # Package initialization
+├── cli.py                         # Command-line interface
+├── app/                           # Main application
+│   ├── __init__.py
+│   ├── main.py                    # Streamlit app entry point
+│   ├── predicta_app.py           # Core application logic
+│   └── pages/                     # Streamlit pages
+│       ├── predicta_chat.py
+│       ├── predicta_viz.py
+│       └── prediction_app.py
+├── core/                          # Core infrastructure
+│   ├── __init__.py
+│   ├── config.py                  # Configuration management
+│   ├── logging_config.py          # Logging setup
+│   └── streamlit_patches.py       # Compatibility patches
+├── modules/                       # Feature modules
+│   ├── data_exploration/          # Data analysis and visualization
+│   ├── feature_cleaning/          # Data cleaning and preprocessing
+│   ├── feature_engineering/       # Feature transformation
+│   ├── feature_selection/         # Feature importance and selection
+│   ├── ml_models/                 # Machine learning algorithms
+│   └── code_editor/               # Code editing capabilities
+├── ui/                            # User interface components
+│   └── theme/                     # Theming and styling
+├── utils/                         # Utility functions
+└── assets/                        # Static assets (images, etc.)
+```
+
+## 🏗️ Architecture
+
+Predicta follows a modular architecture with clear separation of concerns:
+
+- **Core**: Infrastructure components (config, logging, patches)
+- **Modules**: Self-contained feature modules with specific responsibilities
+- **UI**: User interface components and theming
+- **App**: Main application logic and Streamlit pages
+- **CLI**: Command-line interface for easy launching and management
 
 ## 🤝 Contributing
 
@@ -108,6 +186,43 @@ We love your input! Contribute to Predicta in many ways:
 4. Help others in discussions
 
 Check out our [Contributing Guidelines](CONTRIBUTING.md) for more details.
+
+### Development Setup
+
+1. Clone and install in development mode:
+```bash
+git clone https://github.com/ahammadnafiz/Predicta.git
+cd Predicta
+pip install -e .
+```
+
+2. Install development dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run tests (when available):
+```bash
+python -m pytest tests/
+```
+
+## 🔧 Configuration
+
+Predicta uses a centralized configuration system:
+
+- **Config Management**: Centralized settings in `predicta/core/config.py`
+- **Logging**: Professional logging setup with configurable levels
+- **Asset Management**: Centralized asset path management
+- **Session Management**: Temporary file handling and cleanup
+
+## 📦 Package Features
+
+- **Professional Structure**: Follows Python packaging best practices
+- **Modular Design**: Self-contained modules with clear interfaces
+- **CLI Interface**: Easy command-line access to all features
+- **Logging System**: Comprehensive logging with PyTorch compatibility
+- **Configuration Management**: Centralized settings and path management
+- **Asset Management**: Proper handling of static assets and resources
 
 ## 🗺️ Roadmap
 
