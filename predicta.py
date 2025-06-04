@@ -63,7 +63,6 @@ class PredictaApp:
 
     def __init__(self):
         self.df = None
-        self.anthropi_api_key = None
         self.temp_dir = tempfile.gettempdir()
 
         # Check if a user_session exists in st.session_state
