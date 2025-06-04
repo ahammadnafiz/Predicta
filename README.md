@@ -110,6 +110,12 @@ pip install -e .
 
 ### Usage
 
+#### Streamlit Cloud Deployment
+The application is ready for deployment on Streamlit Cloud. Simply:
+1. Fork this repository
+2. Connect your GitHub account to Streamlit Cloud
+3. Deploy using `streamlit_app.py` as the main file
+
 #### Command Line Interface
 ```bash
 # Launch the Streamlit application
@@ -132,6 +138,9 @@ python -m predicta.app.main
 
 # Or using streamlit
 streamlit run predicta/app/main.py
+
+# For Streamlit Cloud compatibility
+streamlit run streamlit_app.py
 ```
 
 ## 📁 Project Structure
@@ -204,6 +213,40 @@ pip install -r requirements.txt
 3. Run tests (when available):
 ```bash
 python -m pytest tests/
+```
+
+## 🚀 Deployment
+
+### Streamlit Cloud
+
+Predicta is optimized for deployment on Streamlit Cloud:
+
+1. **Fork the Repository**: Fork this repository to your GitHub account
+2. **Connect to Streamlit Cloud**: Sign in to [share.streamlit.io](https://share.streamlit.io) with your GitHub account
+3. **Deploy**: Create a new app and use:
+   - **Repository**: `your-username/Predicta`
+   - **Branch**: `main`
+   - **Main file path**: `streamlit_app.py`
+4. **Deploy**: Click "Deploy!" and your app will be live in minutes
+
+The app includes all necessary configuration files:
+- `streamlit_app.py`: Entry point for Streamlit Cloud
+- `requirements.txt`: Python dependencies
+- `packages.txt`: System dependencies
+- `.streamlit/config.toml`: Streamlit configuration
+
+### Local Development
+
+For local development and testing:
+
+```bash
+# Clone and setup
+git clone https://github.com/ahammadnafiz/Predicta.git
+cd Predicta
+pip install -e .
+
+# Run locally
+streamlit run streamlit_app.py
 ```
 
 ## 🔧 Configuration
