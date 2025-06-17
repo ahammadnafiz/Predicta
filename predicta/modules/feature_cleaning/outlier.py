@@ -7,7 +7,6 @@ from ...utils.code_display import ShowCode
 from ...core.logging_config import get_logger
 from sklearn.neighbors import LocalOutlierFactor
 
-
 class OutlierDetector:
     def __init__(self, data):
         self.data = data

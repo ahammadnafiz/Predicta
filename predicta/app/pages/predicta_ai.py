@@ -1,36 +1,3 @@
-import sys
-import logging
-
-# Configure logging to ignore specific PyTorch errors
-class TorchErrorFilter(logging.Filter):
-    def filter(self, record):
-        if "torch._C._get_custom_class_python_wrapper" in str(record.getMessage()):
-            return False
-        return True
-
-# Apply the log filter to root logger
-root_logger = logging.getLogger()
-root_logger.addFilter(TorchErrorFilter())
-
-# Use centralized patches from core module
-from predicta.core.streamlit_patches import apply_streamlit_patches
-apply_streamlit_patches()
-
-# Suppress asyncio loop warnings
-import asyncio
-original_get_running_loop = asyncio.get_running_loop
-
-def patched_get_running_loop():
-    try:
-        return original_get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop
-
-# Apply the patch
-asyncio.get_running_loop = patched_get_running_loop
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -46,11 +13,18 @@ from langchain_experimental.agents import create_csv_agent
 from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-from langchain_groq import ChatGroq
-# Add model_rebuild call to fix Pydantic model configuration
-ChatGroq.model_rebuild()
+from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_experimental.tools import PythonAstREPLTool
 from predicta.ui.theme.theme import Theme
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get Google API key from environment
+import os
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 class CodeUtils:
     """Utility class for code extraction and execution"""
@@ -460,18 +434,72 @@ Create exactly one professional visualization following this protocol:
 ### Response Structure Template
 
 **For Analysis Requests:**
-1. Data Overview and Validation Results
-2. Analytical Methodology and Approach
-3. Key Findings with Supporting Statistics
-4. Business Interpretation and Implications
-5. Limitations and Recommended Next Steps
+1. **Executive Summary** - Brief overview of key findings
+2. **Data Overview and Validation Results** - Dataset structure and quality assessment
+3. **Analytical Methodology and Approach** - Methods used and rationale
+4. **Key Findings with Supporting Statistics** - Detailed numerical results
+5. **Business Interpretation and Implications** - What the findings mean practically
+6. **Insights and Patterns** - Deep dive into discovered trends and relationships
+7. **Recommendations and Actionable Suggestions** - Specific next steps based on findings
+8. **Limitations and Assumptions** - Constraints and caveats
+9. **Follow-up Questions** - Suggested areas for further analysis
 
 **For Visualization Requests:**
-1. Data Validation Summary
-2. Chart Type Justification
-3. Professional Visualization
-4. Visual Insights and Interpretation
-5. Supporting Statistical Context
+1. **Data Validation Summary** - Confirmation of data suitability
+2. **Chart Type Justification** - Why this visualization was chosen
+3. **Professional Visualization** - The actual chart/graph
+4. **Visual Insights and Interpretation** - What the chart reveals
+5. **Statistical Context and Analysis** - Supporting numerical evidence
+6. **Business Implications** - Practical meaning of visual patterns
+7. **Recommendations** - Actions suggested by the visualization
+8. **Additional Analysis Opportunities** - Related visualizations that could provide more insights
+
+## Comprehensive Response Requirements
+
+### Professional Data Analysis Report Format
+
+Every response must be structured as a **comprehensive data analysis report** that includes:
+
+#### 📊 **Executive Summary**
+- Start with a 2-3 sentence summary of the most important findings
+- Highlight the key insight that answers the user's question
+- Use clear, non-technical language for accessibility
+
+#### 🔍 **Detailed Analysis Findings**
+- Present specific numerical results with context
+- Explain statistical significance and confidence levels
+- Compare findings against benchmarks or expectations
+- Identify outliers, anomalies, or surprising patterns
+
+#### 💡 **Business Insights & Implications**
+- Translate statistical findings into business language
+- Explain the practical impact of the discovered patterns
+- Connect findings to potential business outcomes
+- Discuss relevance to decision-making processes
+
+#### 🎯 **Actionable Recommendations**
+- Provide specific, data-driven suggestions
+- Explain the reasoning behind each recommendation
+- Prioritize recommendations by impact and feasibility
+- Include implementation considerations
+
+#### ⚠️ **Limitations & Caveats**
+- Acknowledge data quality issues or limitations
+- Explain assumptions made during analysis
+- Discuss confidence levels and uncertainty
+- Mention what additional data might improve the analysis
+
+#### 🔮 **Future Analysis Opportunities**
+- Suggest related questions worth exploring
+- Recommend additional data sources that could enhance insights
+- Propose follow-up analyses that could provide deeper understanding
+
+### Response Tone and Style
+- **Professional yet accessible**: Use data science terminology but explain complex concepts
+- **Confident but humble**: Present findings assertively while acknowledging limitations
+- **Actionable focus**: Always connect insights to practical next steps
+- **Evidence-based**: Support every claim with specific data points
+- **Comprehensive**: Provide thorough analysis while maintaining readability
 
 ## Critical Success Factors
 
@@ -482,6 +510,9 @@ Create exactly one professional visualization following this protocol:
 - Create only one visualization per request (when requested)
 - Maintain professional standards in all communications
 - Address the specific question asked directly
+- **Provide comprehensive, report-style responses with detailed explanations**
+- **Include specific recommendations and business implications**
+- **Explain the "why" and "how" behind every finding**
 
 ### What You Must Never Do
 - Create visualizations for analysis-only requests
@@ -490,28 +521,37 @@ Create exactly one professional visualization following this protocol:
 - Produce multiple charts in a single response
 - Use placeholder elements or non-functional code
 - Make definitive claims without statistical support
+- **Provide superficial or incomplete analysis**
+- **Give findings without explaining their significance**
+- **Skip recommendations or next steps**
 
-This framework ensures consistent delivery of high-quality data analysis that meets professional standards while providing clear, actionable insights that drive business value.
+This framework ensures consistent delivery of high-quality data analysis that meets professional standards while providing clear, actionable insights that drive business value through comprehensive, report-style responses.
     """
     
-    def __init__(self, groq_api_key=None):
-        self.groq_api_key = groq_api_key
+    def __init__(self, google_api_key=None):
+        self.google_api_key = google_api_key
+        self.memory = ConversationBufferWindowMemory(k=3, memory_key="chat_history", return_messages=True)
+        self.google_chat = None
         self.llm = None
     
     def initialize_llm(self):
         """Initialize the LLM with API key"""
-        if not self.groq_api_key:
+        if not self.google_api_key:
             return False
             
         try:
-            self.llm = ChatGroq(
-                groq_api_key=self.groq_api_key,
-                model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-                temperature=0.6
+            self.google_chat = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                google_api_key=self.google_api_key,
+                temperature=0.7,
+                max_tokens=None,
+                timeout=None,
+                max_retries=2
             )
+            self.llm = self.google_chat
             return True
         except Exception as e:
-            st.error(f"Error initializing LLM: {str(e)}")
+            st.error(f"Error initializing Google Gemini LLM: {str(e)}")
             return False
 
 
@@ -636,12 +676,33 @@ class DataAnalysisAgent(LLMAgent):
     ```
     
     ## RESPONSE STRUCTURE
-    1. **Data Validation Results** (always show)
-    2. **Analysis/Visualization** (based on request type)
-    3. **Numerical Findings** (exact values only)
-    4. **Limitations** (if any data issues found)
+    1. **Executive Summary** (2-3 sentences highlighting key findings)
+    2. **Data Validation Results** (always show dataset overview)
+    3. **Analysis/Visualization** (based on request type with detailed methodology)
+    4. **Detailed Findings** (specific numerical results with statistical context)
+    5. **Business Insights** (practical implications and significance)
+    6. **Actionable Recommendations** (data-driven suggestions with reasoning)
+    7. **Limitations & Assumptions** (data constraints and caveats)
+    8. **Future Analysis Opportunities** (suggested follow-up questions)
     
-    Follow these protocols exactly to ensure reliable, accurate analysis.
+    ## COMPREHENSIVE REPORTING REQUIREMENTS
+    
+    ### For Every Response, Include:
+    - **Why**: Explain the reasoning behind findings and recommendations
+    - **How**: Describe the analytical approach and methodology used
+    - **What**: Present specific numerical results and evidence
+    - **So What**: Translate findings into business implications
+    - **Now What**: Provide actionable next steps and recommendations
+    
+    ### Analysis Depth Requirements:
+    - Compare results against relevant benchmarks or expectations
+    - Identify and explain any anomalies or outliers
+    - Discuss statistical significance and confidence levels
+    - Provide context for all numerical findings
+    - Suggest practical applications of the insights
+    - Recommend follow-up analyses or data collection
+    
+    Follow these protocols exactly to ensure reliable, accurate, and comprehensive analysis reporting.
        
     EXECUTION PROTOCOL:
     
@@ -677,10 +738,26 @@ class DataAnalysisAgent(LLMAgent):
     
     REMEMBER: Only attempt to create a visualization ONCE. The framework will display the output automatically.
     After the visualization is shown, proceed to interpreting the results and providing insights.
+    
+    ## CRITICAL OUTPUT FORMAT REQUIREMENTS
+    
+    When using tools, ALWAYS follow this EXACT format:
+    
+    Thought: I need to [describe what you're thinking]
+    Action: python_repl_ast
+    Action Input: [your code here]
+    Observation: [wait for tool output]
+    Thought: [analyze the results]
+    Final Answer: [your comprehensive analysis]
+    
+    For non-tool responses, provide your analysis directly without the Thought/Action/Observation format.
+    
+    NEVER mix formats or provide incomplete tool usage patterns.
+    ALWAYS end with a "Final Answer:" when using tools.
 """
     
-    def __init__(self, df, response_processor, groq_api_key=None):
-        super().__init__(groq_api_key)
+    def __init__(self, df, response_processor, google_api_key=None):
+        super().__init__(google_api_key)
         self.df = df
         self.response_processor = response_processor
         self.agent = None
@@ -713,7 +790,9 @@ class DataAnalysisAgent(LLMAgent):
                 prefix=system_prompt,
                 allow_dangerous_code=True,
                 extra_tools=[python_repl_tool],
-                max_iterations=8
+                max_iterations=8,
+                max_execution_time=60,
+                early_stopping_method="generate"
             )
             
             st.success('Ready to analyze your data!')
@@ -732,24 +811,35 @@ class DataAnalysisAgent(LLMAgent):
                 # First try with the callback
                 raw_response = self.agent.run(prompt, callbacks=[st_callback])
             except ValueError as e:
-                # Handle parsing errors
+                # Handle parsing errors more robustly
                 error_msg = str(e)
-                st.warning(f"Got an error: {error_msg}")
+                st.warning("Processing response with error recovery...")
                 
-                # Extract the LLM output from the error if possible
-                if "Could not parse LLM output:" in error_msg or "Parsing LLM output produced both a final answer and a parse-able action" in error_msg:
-                    # Try to extract the actual output from the error message
-                    output_start = error_msg.find("`") + 1
-                    output_end = error_msg.rfind("`")
-                    if output_start > 0 and output_end > output_start:
-                        raw_response = error_msg[output_start:output_end]
-                        st.info("Extracted response from error message")
-                    else:
-                        # If extraction fails, try without callbacks
-                        raw_response = self.agent.run(prompt)
+                # Enhanced parsing error handling
+                if any(phrase in error_msg for phrase in [
+                    "Could not parse LLM output:",
+                    "Parsing LLM output produced both a final answer and a parse-able action",
+                    "An output parsing error occurred"
+                ]):
+                    # Multiple extraction strategies
+                    raw_response = self._extract_response_from_error(error_msg)
+                    
+                    if not raw_response:
+                        # Fallback: try without callbacks and with simplified prompt
+                        st.info("Retrying with simplified processing...")
+                        try:
+                            raw_response = self.agent.run(prompt)
+                        except:
+                            # Final fallback: direct LLM call
+                            raw_response = self._direct_llm_fallback(prompt)
                 else:
                     # For other errors, try without the callback
                     raw_response = self.agent.run(prompt)
+            
+            except Exception as inner_e:
+                # If agent fails completely, use direct LLM
+                st.warning("Using direct analysis mode...")
+                raw_response = self._direct_llm_fallback(prompt)
             
             # Process response for visualization
             processed_response = self.response_processor.process_response(raw_response)
@@ -770,9 +860,106 @@ class DataAnalysisAgent(LLMAgent):
             
             return f"I encountered an error processing your request: {error_msg}"
     
+    def _extract_response_from_error(self, error_msg):
+        """Extract meaningful response from parsing error messages."""
+        # Strategy 1: Look for content between backticks
+        backtick_pattern = r"`([^`]+)`"
+        matches = re.findall(backtick_pattern, error_msg)
+        if matches:
+            # Get the longest match (likely the actual response)
+            longest_match = max(matches, key=len)
+            if len(longest_match) > 50:  # Reasonable response length
+                return longest_match
+        
+        # Strategy 2: Look for "Could not parse LLM output:" and extract what follows
+        parse_pattern = r"Could not parse LLM output:\s*(.+?)(?:\n\n|\Z)"
+        match = re.search(parse_pattern, error_msg, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        
+        # Strategy 3: Look for actual analysis content in the error
+        # Sometimes the error contains the actual analysis wrapped in error text
+        lines = error_msg.split('\n')
+        content_lines = []
+        capturing = False
+        
+        for line in lines:
+            # Start capturing after common error prefixes
+            if any(phrase in line for phrase in ["analysis", "data", "findings", "results"]):
+                capturing = True
+            
+            if capturing and line.strip():
+                # Skip obvious error message lines
+                if not any(phrase in line.lower() for phrase in [
+                    "error", "traceback", "exception", "could not parse", "parsing"
+                ]):
+                    content_lines.append(line)
+        
+        if content_lines:
+            return '\n'.join(content_lines)
+        
+        return None
+    
+    def _direct_llm_fallback(self, prompt):
+        """Direct LLM call as fallback when agent fails."""
+        try:
+            if not self.llm:
+                return "I apologize, but I'm having technical difficulties processing your request."
+            
+            # Create a simplified prompt with data context
+            df_info = f"Dataset shape: {self.df.shape}\nColumns: {', '.join(self.df.columns[:10])}"
+            if len(self.df.columns) > 10:
+                df_info += f"... and {len(self.df.columns) - 10} more columns"
+            
+            fallback_prompt = f"""
+            As a data analyst, please analyze this request: "{prompt}"
+            
+            Dataset Information:
+            {df_info}
+            
+            Please provide a comprehensive analysis with:
+            1. Executive Summary
+            2. Analysis approach
+            3. Key insights based on the request
+            4. Recommendations
+            5. Next steps
+            
+            Note: I cannot execute code directly in this mode, so focus on analytical insights and methodology.
+            """
+            
+            response = self.llm.invoke(fallback_prompt)
+            
+            # Add a note about the fallback mode
+            fallback_response = f"""
+## Analysis Report (Direct Mode)
+
+*Note: This analysis was generated in direct mode due to technical constraints. For interactive visualizations and code execution, please try rephrasing your question.*
+
+{response.content if hasattr(response, 'content') else str(response)}
+            """
+            
+            return fallback_response
+            
+        except Exception as e:
+            return f"""
+## Analysis Error
+
+I apologize, but I encountered technical difficulties processing your request. 
+
+**Error Details:** {str(e)}
+
+**Suggestions:**
+1. Try rephrasing your question in simpler terms
+2. Break complex requests into smaller parts
+3. Ensure your CSV data is properly formatted
+4. Check if the column names in your question match the dataset
+
+**Available Columns:** {', '.join(self.df.columns[:5])}{'...' if len(self.df.columns) > 5 else ''}
+            """
+    
     def display_question_input(self):
         """Display the question input field with nice styling"""
-        st.markdown("<h2 style='text-align: center; font-size: 25px;'>Ask a question about the data</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; font-size: 25px;'>Ask PredictaAI about your data</h2>", unsafe_allow_html=True)
         question = st.chat_input(placeholder="Type your question here...")
         return question
 
@@ -826,7 +1013,7 @@ class DataApp:
         self.response_processor = None
         self.analysis_agent = None
         
-    def process_uploaded_file(self, file, groq_api_key=None):
+    def process_uploaded_file(self, file, google_api_key=None):
         """Process the uploaded CSV file and return dataframe and file path."""
         with st.spinner(text="Loading dataset..."):
             try:
@@ -848,7 +1035,7 @@ class DataApp:
                 
                 # Initialize components
                 self.response_processor = ResponseProcessor(self.df)
-                self.analysis_agent = DataAnalysisAgent(self.df, self.response_processor, groq_api_key)
+                self.analysis_agent = DataAnalysisAgent(self.df, self.response_processor, google_api_key)
                 
                 return self.df
                 
@@ -859,7 +1046,7 @@ class DataApp:
     def run(self):
         """Run the main application"""
         # Configure Streamlit page
-        st.set_page_config(layout="centered", page_icon="🤖", page_title="PredicaVIZ")
+        st.set_page_config(layout="centered", page_icon="🤖", page_title="PredictaAI")
         
         # Initialize theme
         app_theme = Theme()
@@ -872,7 +1059,13 @@ class DataApp:
         st.markdown("---")
         
         # Sidebar
-        groq_api_key = st.sidebar.text_input("Enter your Groq API Key:", type="password")
+        # Check if Google API key is available from environment
+        if GOOGLE_API_KEY:
+            st.sidebar.success("✅ Google API Key loaded from environment")
+            google_api_key = GOOGLE_API_KEY
+        else:
+            st.sidebar.warning("⚠️ Google API Key not found in environment")
+            google_api_key = st.sidebar.text_input("Enter your Google API Key:", type="password")
         
         # File uploader in sidebar
         uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
@@ -883,18 +1076,18 @@ class DataApp:
         
         # Process file if uploaded
         if uploaded_file and (self.df is None or uploaded_file.name != getattr(st.session_state, 'last_file', None)):
-            self.process_uploaded_file(uploaded_file, groq_api_key)
+            self.process_uploaded_file(uploaded_file, google_api_key)
             st.session_state.last_file = uploaded_file.name if self.df is not None else None
             
             # Reset chat history when new file is uploaded
             st.session_state.messages = []
         
         # Main app flow
-        if self.df is not None and groq_api_key:
+        if self.df is not None and google_api_key:
             # Setup agent if not already set up
             if self.analysis_agent and self.analysis_agent.agent is None:
                 # Update API key if changed
-                self.analysis_agent.groq_api_key = groq_api_key
+                self.analysis_agent.google_api_key = google_api_key
                 self.analysis_agent.setup_agent(self.file_path)
             
             # Display chat messages
@@ -924,26 +1117,25 @@ class DataApp:
                         st.error("Agent not available. Please check your API key and try again.")
                         app_theme.show_footer()
         
-        elif self.df is not None and not groq_api_key:
+        elif self.df is not None and not google_api_key:
             # Display message when API key is missing
-            st.warning("Please enter your Groq API key to analyze the data.")
+            st.warning("Please enter your Google API key to analyze the data.")
             app_theme.show_footer()
             
         elif not uploaded_file:
             # Display welcome message when no file is uploaded
             st.markdown("""
-                ## Welcome to PredicaVIZ!
+                <div style="text-align: center;">
                 
-                Upload a CSV file and enter your Groq API key to start analyzing your data with AI.
+                ## Welcome to PredictaAI!
                 
-                ### Features:
-                - **Intelligent Visualizations**: Generate insightful charts and graphs automatically
-                - **Natural Language Queries**: Ask questions about your data in plain English
-                - **Advanced Data Analysis**: Get deep insights from your data visualized instantly
-                - **AI-Powered Exploration**: Let AI find patterns and trends in your data
+                Upload a CSV file and enter your Google API key to start analyzing your data with AI.
+                
                 
                 Get started by uploading a CSV file in the sidebar.
-            """)
+                
+                </div>
+            """, unsafe_allow_html=True)
             app_theme.show_footer()
 
 

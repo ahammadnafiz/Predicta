@@ -159,7 +159,7 @@ class DataExplorer:
 
     def _discrete_var_barplot(self, x, y, output_path=None):
         """Creates a bar plot for discrete variables."""
-        fig = go.Figure(data=[go.Bar(x=self.data[x], y=self.data[y], marker_color="#f95738")])
+        fig = go.Figure(data=[go.Bar(x=self.data[x], y=self.data[y], marker_color="#5469df")])
         
         if output_path:
             output = os.path.join(output_path, f'Barplot_{x}.html')
@@ -180,7 +180,7 @@ class DataExplorer:
             st.error(f"No data available for '{x}'.")
             return
 
-        bar_trace = go.Bar(x=counts.index, y=counts.values, marker_color="#f95738")
+        bar_trace = go.Bar(x=counts.index, y=counts.values, marker_color="#5469df")
         layout = go.Layout(title=f'Count Plot: {x}')
         fig = go.Figure(data=[bar_trace], layout=layout)
         
@@ -193,7 +193,7 @@ class DataExplorer:
 
     def _discrete_var_boxplot(self, x, y, output_path=None):
         """Creates a box plot for a discrete variable against a continuous variable."""
-        box_trace = go.Box(x=self.data[x], y=self.data[y], marker_color="#f95738")
+        box_trace = go.Box(x=self.data[x], y=self.data[y], marker_color="#5469df")
         layout = go.Layout(title=f'Box Plot: {y} vs {x}')
         fig = go.Figure(data=[box_trace], layout=layout)
         

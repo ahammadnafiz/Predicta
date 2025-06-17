@@ -186,7 +186,7 @@ class PredictaApp:
             "Select Image Models": self.handle_select_image_models,
             "Data Transformer": self.data_transformer,
         }
-        
+
         handler = handlers.get(option)
         if handler:
             handler()
@@ -298,7 +298,7 @@ class PredictaApp:
         """Launch the code editor."""
         try:
             editor = CodeEditor()
-            editor.display_code_editor(self.df)
+            editor.run_code_editor(self.df)
         except Exception as e:
             error_msg = f"Error launching code editor: {str(e)}"
             logger.error(error_msg)
